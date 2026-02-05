@@ -4,5 +4,9 @@
   "deps": {
     "moonbitlang/x": "0.4.40"
   },
+  "readme": "README.md",
+  "description": "A simple command-line argument parser for MoonBit.",
+  "repository": "https://github.com/dowdiness/margs",
+  "license": "Apache-2.0",
   "source": "src"
 }
