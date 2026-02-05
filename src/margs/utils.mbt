@@ -227,3 +227,108 @@ test "option_key extracts key from BoolFlag" {
   let opt = flag("verbose", short='v')
   inspect(option_key(opt), content="verbose")
 }
+
+///|
+/// Calculate Levenshtein distance between two strings (for typo suggestions)
+pub fn levenshtein_distance(a : String, b : String) -> Int {
+  let len_a = a.length()
+  let len_b = b.length()
+  if len_a == 0 {
+    return len_b
+  }
+  if len_b == 0 {
+    return len_a
+  }
+  // Create a 2D matrix to store distances
+  let mut prev_row : Array[Int] = []
+  let mut curr_row : Array[Int] = []
+  // Initialize first row (distance from empty string to b[0..j])
+  for j = 0; j <= len_b; j = j + 1 {
+    prev_row.push(j)
+  }
+  for i = 0; i < len_a; i = i + 1 {
+    curr_row = []
+    curr_row.push(i + 1) // Distance from a[0..i] to empty string
+    for j = 0; j < len_b; j = j + 1 {
+      let cost = if a[i] == b[j] { 0 } else { 1 }
+      let delete = prev_row[j + 1] + 1
+      let insert = curr_row[j] + 1
+      let substitute = prev_row[j] + cost
+      let min_val = if delete < insert {
+        if delete < substitute {
+          delete
+        } else {
+          substitute
+        }
+      } else if insert < substitute {
+        insert
+      } else {
+        substitute
+      }
+      curr_row.push(min_val)
+    }
+    prev_row = curr_row
+  }
+  curr_row[len_b]
+}
+
+///|
+/// Find the most similar string from candidates (returns None if no good match)
+pub fn find_similar(input : String, candidates : Array[String]) -> String? {
+  let mut best_match : String? = None
+  let mut best_distance = 3 // Only suggest if distance <= 2
+  for candidate in candidates {
+    let distance = levenshtein_distance(input, candidate)
+    if distance < best_distance {
+      best_distance = distance
+      best_match = Some(candidate)
+    }
+  }
+  best_match
+}
+
+// ===== Levenshtein Distance Tests =====
+
+///|
+test "levenshtein_distance with identical strings" {
+  inspect(levenshtein_distance("hello", "hello"), content="0")
+}
+
+///|
+test "levenshtein_distance with one character difference" {
+  inspect(levenshtein_distance("hello", "hallo"), content="1")
+}
+
+///|
+test "levenshtein_distance with two character differences" {
+  inspect(levenshtein_distance("serve", "serv"), content="1")
+}
+
+///|
+test "levenshtein_distance with completely different strings" {
+  inspect(levenshtein_distance("abc", "xyz"), content="3")
+}
+
+///|
+test "levenshtein_distance with empty string" {
+  inspect(levenshtein_distance("", "hello"), content="5")
+  inspect(levenshtein_distance("hello", ""), content="5")
+}
+
+///|
+test "find_similar returns closest match" {
+  let candidates = ["serve", "start", "stop", "status"]
+  inspect(find_similar("serv", candidates), content="Some(\"serve\")")
+}
+
+///|
+test "find_similar returns None for distant matches" {
+  let candidates = ["serve", "start", "stop"]
+  inspect(find_similar("xyz", candidates), content="None")
+}
+
+///|
+test "find_similar with typo in port" {
+  let candidates = ["port", "path", "help"]
+  inspect(find_similar("prot", candidates), content="Some(\"port\")")
+}

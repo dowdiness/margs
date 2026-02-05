@@ -1,0 +1,190 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "dowdiness/margs/margs"
+
+// Values
+pub fn exit_code_for_error(ParseError) -> ExitCode
+
+pub fn file_option(key? : String, short? : Char, long? : String, help? : String, required? : Bool) -> OptionSpec
+
+pub fn find_similar(String, Array[String]) -> String?
+
+pub fn flag(String, short? : Char, long? : String, help? : String, default? : Bool) -> OptionSpec
+
+pub fn[T] generate_help(Parser[T]) -> String
+
+pub fn generate_subcommand_help(SubcommandSpec) -> String
+
+pub fn int_option(String, short? : Char, long? : String, help? : String, metavar? : String, required? : Bool, default? : Int, validator? : (Int) -> Bool) -> OptionSpec
+
+pub fn levenshtein_distance(String, String) -> Int
+
+pub fn option_help(OptionSpec) -> String
+
+pub fn option_key(OptionSpec) -> String
+
+pub fn option_long(OptionSpec) -> String?
+
+pub fn option_required(OptionSpec) -> Bool
+
+pub fn option_short(OptionSpec) -> Char?
+
+pub fn pad_right(String, Int) -> String
+
+pub fn parse_int(String) -> Int?
+
+pub fn[T] parser(String, description? : String, builder~ : (ParsedArgs) -> T raise ParseError) -> Parser[T]
+
+pub fn port_option(key? : String, short? : Char, long? : String, help? : String, default? : Int) -> OptionSpec
+
+pub fn positional(String, help? : String, required? : Bool) -> PositionalSpec
+
+pub fn quiet_flag() -> OptionSpec
+
+pub fn split_at(String, Char) -> (String, String)?
+
+pub fn str_list_option(String, short? : Char, long? : String, help? : String, metavar? : String) -> OptionSpec
+
+pub fn str_option(String, short? : Char, long? : String, help? : String, metavar? : String, required? : Bool, default? : String, validator? : (String) -> Bool) -> OptionSpec
+
+pub fn subcommand(String, description? : String, aliases? : Array[String], options? : Array[OptionSpec], positionals? : Array[PositionalSpec], subcommands? : Array[SubcommandSpec]) -> SubcommandSpec
+
+pub fn url_option(key? : String, short? : Char, long? : String, help? : String, required? : Bool) -> OptionSpec
+
+pub fn verbose_flag() -> OptionSpec
+
+// Errors
+pub suberror ParseError {
+  MissingRequired(String)
+  InvalidValue(String)
+  UnknownOption(String)
+  UnknownCommand(String)
+  InvalidFormat(String)
+  HelpRequested(String)
+}
+
+// Types and methods
+pub enum ArgValue {
+  Str(String)
+  Int(Int)
+  Bool(Bool)
+  StrList(Array[String])
+}
+pub impl Eq for ArgValue
+pub impl Show for ArgValue
+
+pub struct BoolFlagDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  default : Bool
+}
+pub impl Show for BoolFlagDef
+
+pub enum ExitCode {
+  Success
+  GeneralError
+  MisusedCommand
+  InvalidInput
+}
+pub fn ExitCode::code(Self) -> Int
+pub impl Eq for ExitCode
+pub impl Show for ExitCode
+
+pub struct IntOptionDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  metavar : String
+  required : Bool
+  default : Int?
+  validator : ((Int) -> Bool)?
+}
+pub impl Show for IntOptionDef
+
+pub enum OptionSpec {
+  StringOption(StringOptionDef)
+  IntOption(IntOptionDef)
+  BoolFlag(BoolFlagDef)
+  StringListOption(StringListOptionDef)
+}
+pub impl Show for OptionSpec
+
+pub struct ParsedArgs {
+  command_path : Array[String]
+  values : Map[String, ArgValue]
+  positionals : Array[String]
+}
+pub fn ParsedArgs::get_bool(Self, String) -> Bool
+pub fn ParsedArgs::get_int(Self, String) -> Int?
+pub fn ParsedArgs::get_positional(Self, Int) -> String?
+pub fn ParsedArgs::get_string(Self, String) -> String?
+pub fn ParsedArgs::get_string_list(Self, String) -> Array[String]
+pub fn ParsedArgs::require_int(Self, String) -> Int raise ParseError
+pub fn ParsedArgs::require_string(Self, String) -> String raise ParseError
+pub impl Eq for ParsedArgs
+pub impl Show for ParsedArgs
+
+pub struct Parser[T] {
+  name : String
+  description : String
+  version : String?
+  examples : Array[(String, String)]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  subcommands : Array[SubcommandSpec]
+  builder : (ParsedArgs) -> T raise ParseError
+}
+pub fn[T] Parser::add_example(Self[T], String, String) -> Self[T]
+pub fn[T] Parser::add_option(Self[T], OptionSpec) -> Self[T]
+pub fn[T] Parser::add_positional(Self[T], PositionalSpec) -> Self[T]
+pub fn[T] Parser::add_subcommand(Self[T], SubcommandSpec) -> Self[T]
+pub fn[T] Parser::parse(Self[T], Array[String]) -> T raise ParseError
+pub fn[T] Parser::run(Self[T]) -> T raise ParseError
+pub fn[T] Parser::with_options(Self[T], Array[OptionSpec]) -> Self[T]
+pub fn[T] Parser::with_version(Self[T], String) -> Self[T]
+
+pub struct PositionalSpec {
+  name : String
+  help : String
+  required : Bool
+}
+pub impl Eq for PositionalSpec
+pub impl Show for PositionalSpec
+
+pub struct StringListOptionDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  metavar : String
+}
+pub impl Show for StringListOptionDef
+
+pub struct StringOptionDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  metavar : String
+  required : Bool
+  default : String?
+  validator : ((String) -> Bool)?
+}
+pub impl Show for StringOptionDef
+
+pub struct SubcommandSpec {
+  name : String
+  description : String
+  aliases : Array[String]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  subcommands : Array[SubcommandSpec]
+}
+pub impl Show for SubcommandSpec
+
+// Type aliases
+
+// Traits
+

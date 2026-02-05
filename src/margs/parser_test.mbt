@@ -487,3 +487,71 @@ test "require_int succeeds when present" {
   let port = result.require_int("port")
   inspect(port, content="8080")
 }
+
+// ===== Did you mean? suggestions =====
+
+///|
+test "unknown long option suggests similar option" {
+  let p = make_test_parser(options=[str_option("port", long="port")])
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse(["--prot", "8080"])) catch {
+    @margs.UnknownOption(msg) => {
+      caught.val = true
+      inspect(msg.contains("Did you mean"), content="true")
+      inspect(msg.contains("--port"), content="true")
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+}
+
+///|
+test "unknown short option suggests similar option" {
+  let p = make_test_parser(options=[
+    flag("port", short='p'),
+    flag("help", short='h'),
+  ])
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse(["-o"])) catch {
+    @margs.UnknownOption(msg) => {
+      caught.val = true
+      inspect(msg.contains("Did you mean"), content="true")
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+}
+
+///|
+test "unknown command suggests similar command" {
+  let sub = subcommand("serve", options=[])
+  let p = make_test_parser(subcommands=[sub])
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse(["serv"])) catch {
+    @margs.UnknownCommand(msg) => {
+      caught.val = true
+      inspect(msg.contains("Did you mean"), content="true")
+      inspect(msg.contains("serve"), content="true")
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+}
+
+///|
+test "very different option does not suggest" {
+  let p = make_test_parser(options=[str_option("port", long="port")])
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse(["--xyz"])) catch {
+    @margs.UnknownOption(msg) => {
+      caught.val = true
+      inspect(msg.contains("Did you mean"), content="false")
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+}

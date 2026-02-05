@@ -12,6 +12,9 @@ A simple command-line argument parser for MoonBit.
 - **Help generation** - Automatic help text generation from your specification
 - **Positional arguments** - Required and optional positional arguments
 - **Smart defaults** - Common CLI patterns like `--verbose`, `--port`, `--file`
+- **Typo suggestions** - Helpful "did you mean?" suggestions for mistyped options and commands
+- **Version & examples** - Display version information and usage examples in help text
+- **Exit codes** - Standard exit codes for proper CLI behavior
 
 ## Installation
 
@@ -46,6 +49,8 @@ fn main {
       }
     },
   )
+  .with_version("1.0.0")
+  .add_example("myapp --name Alice --count 3", "Greet Alice three times")
   .add_option(@margs.str_option(
     "name",
     short='n',
@@ -62,12 +67,13 @@ fn main {
   ))
 
   let _ : Result[Unit, Unit] = Ok(app.run()) catch {
-    @margs.HelpRequested(_) => {
-      println(@margs.generate_help(app))
-      Ok(())
-    }
-    @margs.ParseError(msg) => {
-      println("Error: \{msg}")
+    err => {
+      match err {
+        @margs.HelpRequested(_) => println(@margs.generate_help(app))
+        _ => println("Error: \{err}")
+      }
+      let exit_code = @margs.exit_code_for_error(err)
+      @sys.exit(exit_code.code())
       Ok(())
     }
   }
@@ -84,12 +90,21 @@ Hello, Alice!
 $ myapp --help
 A simple CLI tool
 
+Version: 1.0.0
+
 Usage: myapp [OPTIONS]
+
+Examples:
+  $ myapp --name Alice --count 3
+      Greet Alice three times
 
 Options:
   -n, --name <VALUE>   Name to greet
   -c, --count <NUM>    Number of greetings
   -h, --help           Print help
+
+$ myapp --nam Alice
+Error: unknown option '--nam'. Did you mean '--name'?
 ```
 
 ## Option Types
@@ -285,6 +300,77 @@ Help text is automatically generated from your parser specification:
 @margs.generate_subcommand_help(subcommand_spec)
 ```
 
+### Version and Examples
+
+Enhance your help text with version information and usage examples:
+
+```moonbit
+let app = @margs.parser("myapp", builder=fn(args) { ... })
+  .with_version("1.2.3")
+  .add_example("myapp serve --port 8080", "Start server on port 8080")
+  .add_example("myapp build -o dist", "Build to dist directory")
+```
+
+The help output will include:
+
+```
+A demo project tool
+
+Version: 1.2.3
+
+Usage: myapp [OPTIONS] <COMMAND>
+
+Examples:
+  $ myapp serve --port 8080
+      Start server on port 8080
+
+  $ myapp build -o dist
+      Build to dist directory
+
+...
+```
+
+## Typo Suggestions
+
+When users mistype options or commands, margs provides helpful suggestions:
+
+```bash
+$ myapp serv
+Error: unknown command 'serv'. Did you mean 'serve'?
+
+$ myapp serve --prot 8080
+Error: unknown option '--prot'. Did you mean '--port'?
+
+$ myapp -P
+Error: unknown option '-P'. Did you mean '-p'?
+```
+
+The suggestion engine uses Levenshtein distance to find the closest match within an edit distance of 2.
+
+## Exit Codes
+
+Use standard exit codes for proper CLI behavior:
+
+```moonbit
+let _ = Ok(app.run()) catch {
+  err => {
+    match err {
+      @margs.HelpRequested(_) => println(@margs.generate_help(app))
+      _ => println("Error: \{err}")
+    }
+    let exit_code = @margs.exit_code_for_error(err)
+    @sys.exit(exit_code.code())
+    Ok(())
+  }
+}
+```
+
+Exit codes:
+- `0` - Success (including help requested)
+- `1` - General error
+- `2` - Misused command (unknown option/command, missing required)
+- `3` - Invalid input (validation failed, invalid format)
+
 ## Argument Syntax
 
 margs supports standard CLI conventions:
@@ -346,6 +432,7 @@ margs/
 │   │   ├── help.mbt         # Help text generation
 │   │   ├── validators.mbt   # Common validators
 │   │   ├── utils.mbt        # Utility functions
+│   │   ├── exit_codes.mbt   # Exit code helpers
 │   │   └── *_test.mbt       # Unit tests
 │   └── example/
 │       └── main.mbt         # Demo CLI application

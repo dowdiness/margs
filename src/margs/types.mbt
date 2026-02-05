@@ -153,6 +153,8 @@ pub suberror ParseError {
 pub struct Parser[T] {
   name : String
   description : String
+  version : String?
+  examples : Array[(String, String)]
   options : Array[OptionSpec]
   positionals : Array[PositionalSpec]
   subcommands : Array[SubcommandSpec]

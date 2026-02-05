@@ -152,3 +152,71 @@ test "port_option accepts valid port" {
   let result = p.parse(["--port", "8080"])
   inspect(result.get_int("port"), content="Some(8080)")
 }
+
+// ===== Version and Examples tests =====
+
+///|
+test "help includes version when set" {
+  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
+      args,
+    ) {
+      args
+    })
+    |> Parser::with_version("1.2.3")
+  let help = generate_help(p)
+  inspect(help.contains("Version: 1.2.3"), content="true")
+}
+
+///|
+test "help excludes version when not set" {
+  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
+    args,
+  ) {
+    args
+  })
+  let help = generate_help(p)
+  inspect(help.contains("Version:"), content="false")
+}
+
+///|
+test "help includes examples when added" {
+  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
+      args,
+    ) {
+      args
+    })
+    |> Parser::add_example("myapp --port 8080", "Start on port 8080")
+    |> Parser::add_example("myapp --help", "Show help")
+  let help = generate_help(p)
+  inspect(help.contains("Examples:"), content="true")
+  inspect(help.contains("$ myapp --port 8080"), content="true")
+  inspect(help.contains("Start on port 8080"), content="true")
+  inspect(help.contains("$ myapp --help"), content="true")
+  inspect(help.contains("Show help"), content="true")
+}
+
+///|
+test "help excludes examples section when none added" {
+  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
+    args,
+  ) {
+    args
+  })
+  let help = generate_help(p)
+  inspect(help.contains("Examples:"), content="false")
+}
+
+///|
+test "help with version and examples together" {
+  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
+      args,
+    ) {
+      args
+    })
+    |> Parser::with_version("2.0.0")
+    |> Parser::add_example("myapp serve", "Start server")
+  let help = generate_help(p)
+  inspect(help.contains("Version: 2.0.0"), content="true")
+  inspect(help.contains("Examples:"), content="true")
+  inspect(help.contains("$ myapp serve"), content="true")
+}

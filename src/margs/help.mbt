@@ -105,11 +105,32 @@ pub fn[T] generate_help(p : Parser[T]) -> String {
     buf.write_string(p.description)
     buf.write_string("\n\n")
   }
+  // Version
+  match p.version {
+    Some(v) => {
+      buf.write_string("Version: ")
+      buf.write_string(v)
+      buf.write_string("\n\n")
+    }
+    None => ()
+  }
   // Usage
   buf.write_string(
     format_usage(p.name, p.options, p.positionals, p.subcommands),
   )
   buf.write_string("\n")
+  // Examples
+  if p.examples.length() > 0 {
+    buf.write_string("\nExamples:\n")
+    for example in p.examples {
+      let (cmd, desc) = example
+      buf.write_string("  $ ")
+      buf.write_string(cmd)
+      buf.write_string("\n      ")
+      buf.write_string(desc)
+      buf.write_string("\n\n")
+    }
+  }
   // Subcommands
   if p.subcommands.length() > 0 {
     buf.write_string("\nCommands:\n")

@@ -134,6 +134,32 @@ fn is_flag(opt : OptionSpec) -> Bool {
 }
 
 ///|
+/// Collect all long option names for suggestions
+fn collect_long_names(options : Array[OptionSpec]) -> Array[String] {
+  let names : Array[String] = []
+  for opt in options {
+    match option_long(opt) {
+      Some(long) => names.push(long)
+      None => names.push(option_key(opt))
+    }
+  }
+  names
+}
+
+///|
+/// Collect all short option characters for suggestions
+fn collect_short_names(options : Array[OptionSpec]) -> Array[String] {
+  let names : Array[String] = []
+  for opt in options {
+    match option_short(opt) {
+      Some(ch) => names.push(ch.to_string())
+      None => ()
+    }
+  }
+  names
+}
+
+///|
 /// Parse a long option (--key=value or --key value)
 fn parse_long_option(
   name : String,
@@ -147,7 +173,16 @@ fn parse_long_option(
     Some((key, value)) =>
       match find_option_by_long(options, key) {
         Some(opt) => apply_option_value(opt, value, values)
-        None => raise UnknownOption("unknown option '--\{key}'")
+        None => {
+          let candidates = collect_long_names(options)
+          match find_similar(key, candidates) {
+            Some(suggestion) =>
+              raise UnknownOption(
+                "unknown option '--\{key}'. Did you mean '--\{suggestion}'?",
+              )
+            None => raise UnknownOption("unknown option '--\{key}'")
+          }
+        }
       }
     None =>
       match find_option_by_long(options, name) {
@@ -160,7 +195,16 @@ fn parse_long_option(
           } else {
             raise MissingRequired("option '--\{name}' requires a value")
           }
-        None => raise UnknownOption("unknown option '--\{name}'")
+        None => {
+          let candidates = collect_long_names(options)
+          match find_similar(name, candidates) {
+            Some(suggestion) =>
+              raise UnknownOption(
+                "unknown option '--\{name}'. Did you mean '--\{suggestion}'?",
+              )
+            None => raise UnknownOption("unknown option '--\{name}'")
+          }
+        }
       }
   }
 }
@@ -195,7 +239,16 @@ fn parse_short_option(
           } else {
             raise MissingRequired("option '-\{ch}' requires a value")
           }
-        None => raise UnknownOption("unknown option '-\{ch}'")
+        None => {
+          let candidates = collect_short_names(options)
+          match find_similar(ch.to_string(), candidates) {
+            Some(suggestion) =>
+              raise UnknownOption(
+                "unknown option '-\{ch}'. Did you mean '-\{suggestion}'?",
+              )
+            None => raise UnknownOption("unknown option '-\{ch}'")
+          }
+        }
       }
   }
 }
@@ -294,7 +347,18 @@ fn parse_args(
                 if positionals.length() > 0 {
                   pos_values.push(arg)
                 } else {
-                  raise UnknownCommand("unknown command '\{arg}'")
+                  // Suggest similar subcommand names
+                  let candidates : Array[String] = []
+                  for sub in subcommands {
+                    candidates.push(sub.name)
+                  }
+                  match find_similar(arg, candidates) {
+                    Some(suggestion) =>
+                      raise UnknownCommand(
+                        "unknown command '\{arg}'. Did you mean '\{suggestion}'?",
+                      )
+                    None => raise UnknownCommand("unknown command '\{arg}'")
+                  }
                 }
             }
           } else {

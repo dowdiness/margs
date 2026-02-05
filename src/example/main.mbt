@@ -90,6 +90,10 @@ fn build_app(
       }
     },
   )
+  .with_version("1.0.0")
+  .add_example("demo serve --port 8080", "Start server on port 8080")
+  .add_example("demo build -o dist -t wasm", "Build for wasm target")
+  .add_example("demo init my-app", "Create a new project")
   .add_option(@margs.verbose_flag())
   .add_subcommand(serve_cmd)
   .add_subcommand(build_cmd)
@@ -141,38 +145,36 @@ fn main {
     positionals=[@margs.positional("name", help="Project name")],
   )
   let app = build_app(serve_cmd, build_cmd, init_cmd)
+
+  // Show help if no command specified
+  let all_args = @sys.get_cli_args()
+  if all_args.length() <= 1 {
+    println(@margs.generate_help(app))
+    return
+  }
+
   let sub_name = find_subcmd_name()
   let _ : Result[Unit, Unit] = Ok(app.run()) catch {
-    @margs.HelpRequested(_) => {
-      match sub_name {
-        "serve" => println(@margs.generate_subcommand_help(serve_cmd))
-        "s" => println(@margs.generate_subcommand_help(serve_cmd))
-        "build" => println(@margs.generate_subcommand_help(build_cmd))
-        "b" => println(@margs.generate_subcommand_help(build_cmd))
-        "init" => println(@margs.generate_subcommand_help(init_cmd))
-        "i" => println(@margs.generate_subcommand_help(init_cmd))
-        _ => println(@margs.generate_help(app))
+    err => {
+      match err {
+        @margs.HelpRequested(_) =>
+          match sub_name {
+            "serve" => println(@margs.generate_subcommand_help(serve_cmd))
+            "s" => println(@margs.generate_subcommand_help(serve_cmd))
+            "build" => println(@margs.generate_subcommand_help(build_cmd))
+            "b" => println(@margs.generate_subcommand_help(build_cmd))
+            "init" => println(@margs.generate_subcommand_help(init_cmd))
+            "i" => println(@margs.generate_subcommand_help(init_cmd))
+            _ => println(@margs.generate_help(app))
+          }
+        @margs.MissingRequired(msg)
+        | @margs.InvalidValue(msg)
+        | @margs.UnknownOption(msg)
+        | @margs.UnknownCommand(msg)
+        | @margs.InvalidFormat(msg) => println("Error: \{msg}")
       }
-      Ok(())
-    }
-    @margs.MissingRequired(msg) => {
-      println("Error: \{msg}")
-      Ok(())
-    }
-    @margs.InvalidValue(msg) => {
-      println("Error: \{msg}")
-      Ok(())
-    }
-    @margs.UnknownOption(msg) => {
-      println("Error: \{msg}")
-      Ok(())
-    }
-    @margs.UnknownCommand(msg) => {
-      println("Error: \{msg}")
-      Ok(())
-    }
-    @margs.InvalidFormat(msg) => {
-      println("Error: \{msg}")
+      let exit_code = @margs.exit_code_for_error(err)
+      @sys.exit(exit_code.code())
       Ok(())
     }
   }

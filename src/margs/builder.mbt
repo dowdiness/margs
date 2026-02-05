@@ -71,7 +71,16 @@ pub fn[T] parser(
   description? : String = "",
   builder~ : (ParsedArgs) -> T raise ParseError,
 ) -> Parser[T] {
-  { name, description, options: [], positionals: [], subcommands: [], builder }
+  {
+    name,
+    description,
+    version: None,
+    examples: [],
+    options: [],
+    positionals: [],
+    subcommands: [],
+    builder,
+  }
 }
 
 ///|
@@ -105,6 +114,22 @@ pub fn[T] Parser::with_options(
   opts : Array[OptionSpec],
 ) -> Parser[T] {
   { ..self, options: self.options + opts }
+}
+
+///|
+/// Add version information to the parser
+pub fn[T] Parser::with_version(self : Parser[T], v : String) -> Parser[T] {
+  { ..self, version: Some(v) }
+}
+
+///|
+/// Add a usage example to the parser
+pub fn[T] Parser::add_example(
+  self : Parser[T],
+  cmd : String,
+  desc : String,
+) -> Parser[T] {
+  { ..self, examples: self.examples + [(cmd, desc)] }
 }
 
 ///|
