@@ -10,9 +10,10 @@ pub fn str_option(
   metavar? : String = "VALUE",
   required? : Bool = false,
   default? : String,
+  env? : String,
   validator? : (String) -> Bool,
 ) -> OptionSpec {
-  StringOption({ key, short, long, help, metavar, required, default, validator })
+  StringOption({ key, short, long, help, metavar, required, default, env, validator })
 }
 
 ///|
@@ -25,9 +26,10 @@ pub fn int_option(
   metavar? : String = "NUM",
   required? : Bool = false,
   default? : Int,
+  env? : String,
   validator? : (Int) -> Bool,
 ) -> OptionSpec {
-  IntOption({ key, short, long, help, metavar, required, default, validator })
+  IntOption({ key, short, long, help, metavar, required, default, env, validator })
 }
 
 ///|
@@ -38,8 +40,9 @@ pub fn flag(
   long? : String,
   help? : String = "",
   default? : Bool = false,
+  env? : String,
 ) -> OptionSpec {
-  BoolFlag({ key, short, long, help, default })
+  BoolFlag({ key, short, long, help, default, env })
 }
 
 ///|
@@ -50,8 +53,9 @@ pub fn str_list_option(
   long? : String,
   help? : String = "",
   metavar? : String = "VALUE",
+  env? : String,
 ) -> OptionSpec {
-  StringListOption({ key, short, long, help, metavar })
+  StringListOption({ key, short, long, help, metavar, env })
 }
 
 ///|

@@ -33,6 +33,7 @@ pub struct StringOptionDef {
   metavar : String
   required : Bool
   default : String?
+  env : String?
   validator : ((String) -> Bool)?
 }
 
@@ -46,6 +47,7 @@ pub struct IntOptionDef {
   metavar : String
   required : Bool
   default : Int?
+  env : String?
   validator : ((Int) -> Bool)?
 }
 
@@ -57,6 +59,7 @@ pub struct BoolFlagDef {
   long : String?
   help : String
   default : Bool
+  env : String?
 }
 
 ///|
@@ -67,6 +70,7 @@ pub struct StringListOptionDef {
   long : String?
   help : String
   metavar : String
+  env : String?
 }
 
 ///|
