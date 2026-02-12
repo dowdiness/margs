@@ -162,3 +162,61 @@ test "hook failures convert to handler error" {
     Err(_) => inspect(false, content="true")
   }
 }
+
+///|
+test "run_for_test returns success on successful command" {
+  let cli = create_cli("demo").add_command(command("run", handler=fn(_) { () }))
+  let result = cli.run_for_test(["run"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.output is None, content="true")
+  inspect(result.error is None, content="true")
+}
+
+///|
+test "run_for_test returns root help output without error on empty args" {
+  let cli = create_cli("demo").add_command(command("run", handler=fn(_) { () }))
+  let result = cli.run_for_test([])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.error is None, content="true")
+  inspect(result.output.unwrap_or("").contains("Usage: demo"), content="true")
+}
+
+///|
+test "run_for_test returns version output" {
+  let cli = create_cli("demo", version="9.9.9")
+  let result = cli.run_for_test(["--version"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.output, content="Some(\"9.9.9\")")
+  inspect(result.error is None, content="true")
+}
+
+///|
+test "run_for_test returns command help with success exit" {
+  let cli = create_cli("demo").add_command(
+    command("deploy", description="Deploy app", handler=fn(_) { () }),
+  )
+  let result = cli.run_for_test(["deploy", "--help"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.output.unwrap_or("").contains("Usage: deploy"), content="true")
+  match result.error {
+    Some(ParseError::HelpRequested(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
+}
+
+///|
+test "run_for_test maps parse failures to exit code and output" {
+  let cli = create_cli("demo").add_command(
+    command("serve", handler=fn(_) { () }).add_option(port_option()),
+  )
+  let result = cli.run_for_test(["serve", "--port", "abc"])
+  inspect(result.exit_code.code(), content="3")
+  inspect(
+    result.output.unwrap_or("").contains("expected integer for option"),
+    content="true",
+  )
+  match result.error {
+    Some(ParseError::InvalidValue(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
+}

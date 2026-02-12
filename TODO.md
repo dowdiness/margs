@@ -15,10 +15,10 @@
 
 ## Phase 1 - Wrapper MVP + Extensibility
 - [x] Define and implement middleware hooks (before/after handler).
-- [ ] Add test helpers for in-process CLI invocation and assertions.
+- [x] Add test helpers for in-process CLI invocation and assertions.
 - [ ] Explore async-friendly handler support (even experimental).
-- [ ] Add tests for help/version rendering from wrapper API.
-- [ ] Add tests for error-to-exit-code mapping (including `GeneralError`).
+- [x] Add tests for help/version rendering from wrapper API.
+- [x] Add tests for error-to-exit-code mapping (including `GeneralError`).
 
 ## Phase 2 - Real-world Usability
 - [ ] Add env-var backed defaults (opt-in per option).

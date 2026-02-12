@@ -26,6 +26,14 @@ pub struct Cli {
 }
 
 ///|
+/// Structured result for in-process CLI test execution.
+pub struct CliTestResult {
+  exit_code : ExitCode
+  output : String?
+  error : ParseError?
+}
+
+///|
 /// Create a new high-level CLI wrapper.
 pub fn create_cli(
   name : String,
@@ -324,6 +332,70 @@ pub fn Cli::parse(self : Cli, args : Array[String]) -> Unit raise ParseError {
 }
 
 ///|
+/// Run the CLI in-process for tests without printing or exiting the process.
+/// Returns structured output, exit code, and optional parse error.
+pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
+  // Match run(): with no args and command-only CLI, show help without exit.
+  if args.length() == 0 && self.commands.length() > 0 {
+    match self.handler {
+      Some(_) => ()
+      None =>
+        return {
+          exit_code: Success,
+          output: Some(generate_help(self.to_parser())),
+          error: None,
+        }
+    }
+  }
+
+  // Match run(): wrapper-level version handling.
+  if args.length() > 0 && is_version_arg(args[0]) {
+    match self.version {
+      Some(v) => return { exit_code: Success, output: Some(v), error: None }
+      None => ()
+    }
+  }
+
+  let parsed : Result[Unit, ParseError] = Ok(self.parse(args)) catch {
+    err => Err(err)
+  }
+
+  match parsed {
+    Ok(_) => { exit_code: Success, output: None, error: None }
+    Err(err) =>
+      match err {
+        HelpRequested(_) => {
+          let text = match
+            resolve_help_subcommand(
+              args,
+              self.options,
+              root_subcommand_specs(self.commands),
+            ) {
+            Some(spec) => generate_subcommand_help(spec)
+            None => generate_help(self.to_parser())
+          }
+          {
+            exit_code: exit_code_for_error(err),
+            output: Some(text),
+            error: Some(err),
+          }
+        }
+        MissingRequired(msg)
+        | InvalidValue(msg)
+        | UnknownOption(msg)
+        | UnknownCommand(msg)
+        | InvalidFormat(msg)
+        | HandlerError(msg) =>
+          {
+            exit_code: exit_code_for_error(err),
+            output: Some("Error: \{msg}"),
+            error: Some(err),
+          }
+      }
+  }
+}
+
+///|
 /// Return true if argument requests version output.
 fn is_version_arg(arg : String) -> Bool {
   arg == "--version" || arg == "-V"
@@ -480,56 +552,13 @@ pub fn Cli::run(self : Cli) -> Unit {
     args.push(all_args[i])
   }
 
-  // If commands exist and no args were provided, show help.
-  if args.length() == 0 && self.commands.length() > 0 {
-    match self.handler {
-      Some(_) => ()
-      None => {
-        println(generate_help(self.to_parser()))
-        return
-      }
-    }
+  let result = self.run_for_test(args)
+  match result.output {
+    Some(text) => println(text)
+    None => ()
   }
-
-  // Wrapper-level version handling.
-  if args.length() > 0 && is_version_arg(args[0]) {
-    match self.version {
-      Some(v) => {
-        println(v)
-        return
-      }
-      None => ()
-    }
-  }
-
-  let _ : Result[Unit, Unit] = Ok(self.parse(args)) catch {
-    err =>
-      match err {
-        HelpRequested(_) => {
-          match
-            resolve_help_subcommand(
-              args,
-              self.options,
-              root_subcommand_specs(self.commands),
-            ) {
-            Some(spec) => println(generate_subcommand_help(spec))
-            None => println(generate_help(self.to_parser()))
-          }
-          let code = exit_code_for_error(err)
-          @sys.exit(code.code())
-          Ok(())
-        }
-        MissingRequired(msg)
-        | InvalidValue(msg)
-        | UnknownOption(msg)
-        | UnknownCommand(msg)
-        | InvalidFormat(msg)
-        | HandlerError(msg) => {
-          println("Error: \{msg}")
-          let code = exit_code_for_error(err)
-          @sys.exit(code.code())
-          Ok(())
-        }
-      }
+  match result.error {
+    Some(_) => @sys.exit(result.exit_code.code())
+    None => ()
   }
 }
