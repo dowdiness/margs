@@ -109,7 +109,7 @@ When an option value is specified in multiple places, `margs` resolves it using 
 **Current status:**
 - ✅ CLI arguments and defaults
 - ✅ Environment variables (strings, ints, bools)
-- 🚧 Config file support (planned)
+- ✅ Config file support (JSON)
 
 ## Environment Variable Support
 
@@ -139,7 +139,7 @@ let cli = create_cli("myapp")
   ))
 ```
 
-**Precedence**: CLI arguments > environment variables > default values
+**Precedence**: CLI arguments > environment variables > config file > default values
 
 ```bash
 # Uses default
@@ -154,6 +154,42 @@ MYAPP_PORT=3000 myapp
 MYAPP_PORT=3000 myapp --port 9000
 # → host=localhost, port=9000
 ```
+
+## Config File Support
+
+Load default values from a JSON configuration file:
+
+```moonbit
+let cli = create_cli("myapp")
+  .with_config_file(".myapprc.json")
+  .add_option(str_option("host", env="MYAPP_HOST", default="localhost"))
+  .add_option(int_option("port", env="MYAPP_PORT", default=8080))
+```
+
+**Config file format** (`.myapprc.json`):
+```json
+{
+  "host": "prod.example.com",
+  "port": "3000",
+  "verbose": "true"
+}
+```
+
+**Precedence chain in action:**
+```bash
+# Config: host=prod.example.com, port=3000
+# Env: MYAPP_PORT=5000
+# CLI: --host custom.com
+
+myapp
+# → host=custom.com (CLI), port=5000 (env)
+```
+
+**Features:**
+- Gracefully handles missing config files
+- Simple flat JSON structure
+- Works with all option types (string, int, bool, list)
+- Auto-discovery with `discover_config_file("myapp")` (checks `.myapprc`, `.myapprc.json`)
 
 ## Structured Output
 

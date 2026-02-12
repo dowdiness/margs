@@ -21,7 +21,7 @@
 
 ## Phase 2 - Real-world Usability
 - [x] Add env-var backed defaults (opt-in per option).
-- [ ] Add config-file backed defaults (start with one simple format).
+- [x] Add config-file backed defaults (start with one simple format).
 - [x] Document precedence: CLI args > env > config > default.
 - [x] Add structured output helpers (JSON/logging).
 - [ ] Version command metadata for stable completion output.
