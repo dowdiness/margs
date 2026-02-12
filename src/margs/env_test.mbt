@@ -4,10 +4,9 @@
 test "env var provides default for string option" {
   @sys.set_env_var("TEST_HOST", "example.com")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(str_option("host", env="TEST_HOST", default="localhost"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    str_option("host", env="TEST_HOST", default="localhost"),
+  )
 
   let result = p.parse([])
   inspect(result.get_string("host"), content="Some(\"example.com\")")
@@ -19,10 +18,9 @@ test "env var provides default for string option" {
 test "cli arg overrides env var for string option" {
   @sys.set_env_var("TEST_HOST", "example.com")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(str_option("host", long="host", env="TEST_HOST"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    str_option("host", long="host", env="TEST_HOST"),
+  )
 
   let result = p.parse(["--host", "custom.com"])
   inspect(result.get_string("host"), content="Some(\"custom.com\")")
@@ -34,10 +32,9 @@ test "cli arg overrides env var for string option" {
 test "env var overrides default for string option" {
   @sys.set_env_var("TEST_PORT", "3000")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(int_option("port", env="TEST_PORT", default=8080))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    int_option("port", env="TEST_PORT", default=8080),
+  )
 
   let result = p.parse([])
   inspect(result.get_int("port"), content="Some(3000)")
@@ -47,10 +44,9 @@ test "env var overrides default for string option" {
 
 ///|
 test "uses default when env var not set" {
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(str_option("host", env="NONEXISTENT_VAR", default="localhost"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    str_option("host", env="NONEXISTENT_VAR", default="localhost"),
+  )
 
   let result = p.parse([])
   inspect(result.get_string("host"), content="Some(\"localhost\")")
@@ -60,10 +56,9 @@ test "uses default when env var not set" {
 test "env var parses int option" {
   @sys.set_env_var("TEST_COUNT", "42")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(int_option("count", env="TEST_COUNT"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    int_option("count", env="TEST_COUNT"),
+  )
 
   let result = p.parse([])
   inspect(result.get_int("count"), content="Some(42)")
@@ -75,10 +70,9 @@ test "env var parses int option" {
 test "invalid int in env var falls back to default" {
   @sys.set_env_var("TEST_COUNT", "not-a-number")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(int_option("count", env="TEST_COUNT", default=10))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    int_option("count", env="TEST_COUNT", default=10),
+  )
 
   let result = p.parse([])
   inspect(result.get_int("count"), content="Some(10)")
@@ -90,10 +84,9 @@ test "invalid int in env var falls back to default" {
 test "env var parses bool flag as true" {
   @sys.set_env_var("TEST_VERBOSE", "true")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(flag("verbose", env="TEST_VERBOSE"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    flag("verbose", env="TEST_VERBOSE"),
+  )
 
   let result = p.parse([])
   inspect(result.get_bool("verbose"), content="true")
@@ -105,10 +98,9 @@ test "env var parses bool flag as true" {
 test "env var parses bool flag from 1" {
   @sys.set_env_var("TEST_DEBUG", "1")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(flag("debug", env="TEST_DEBUG"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    flag("debug", env="TEST_DEBUG"),
+  )
 
   let result = p.parse([])
   inspect(result.get_bool("debug"), content="true")
@@ -120,10 +112,9 @@ test "env var parses bool flag from 1" {
 test "env var parses bool flag as false for other values" {
   @sys.set_env_var("TEST_VERBOSE", "0")
 
-  let p = parser(
-    "test",
-    builder=fn(args) { args },
-  ).add_option(flag("verbose", env="TEST_VERBOSE"))
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    flag("verbose", env="TEST_VERBOSE"),
+  )
 
   let result = p.parse([])
   inspect(result.get_bool("verbose"), content="false")

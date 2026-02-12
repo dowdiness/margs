@@ -55,9 +55,16 @@ fn parse_int_safe(s : String) -> Int? {
 /// Everything else is false.
 fn parse_bool_env(s : String) -> Bool {
   // Simple case-insensitive comparison
-  s == "1" || s == "true" || s == "True" || s == "TRUE" ||
-  s == "yes" || s == "Yes" || s == "YES" ||
-  s == "on" || s == "On" || s == "ON"
+  s == "1" ||
+  s == "true" ||
+  s == "True" ||
+  s == "TRUE" ||
+  s == "yes" ||
+  s == "Yes" ||
+  s == "YES" ||
+  s == "on" ||
+  s == "On" ||
+  s == "ON"
 }
 
 ///|
