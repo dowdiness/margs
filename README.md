@@ -67,6 +67,7 @@ fn main {
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
 - Help output: `@margs.generate_help`, `@margs.generate_subcommand_help`
 - Parsed accessors: `get_string`, `get_int`, `get_bool`, `get_string_list`, `get_positional`, `require_string`, `require_int`
+- Output helpers: `@margs.log_info`, `@margs.log_warn`, `@margs.log_error`, `@margs.log_debug`, `@margs.success`, `@margs.failure`, `@margs.step`, `@margs.section`, `@margs.kv`
 
 ## Hook Semantics
 
@@ -106,6 +107,39 @@ When an option value is specified in multiple places, `margs` resolves it using 
    ```
 
 **Current status:** Only CLI arguments and defaults are implemented. Environment variable and config file support are planned for Phase 2.
+
+## Structured Output
+
+Use the output helpers for consistent CLI formatting:
+
+```moonbit
+command("deploy", handler=fn(args) {
+  section("Deployment")
+
+  step("Building application...")
+  // build logic here
+
+  step("Uploading to server...")
+  // upload logic here
+
+  success("Deployment completed")
+
+  kv("Status", "deployed")
+  kv("Version", "1.2.3")
+  kv("URL", "https://app.example.com")
+})
+```
+
+Output:
+```
+=== Deployment ===
+• Building application...
+• Uploading to server...
+✓ Deployment completed
+  Status: deployed
+  Version: 1.2.3
+  URL: https://app.example.com
+```
 
 ## Example App
 
