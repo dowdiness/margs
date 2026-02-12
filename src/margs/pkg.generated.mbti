@@ -20,6 +20,8 @@ pub fn flag(String, short? : Char, long? : String, help? : String, default? : Bo
 
 pub fn[T] generate_help(Parser[T]) -> String
 
+pub fn[T] generate_metadata(Parser[T]) -> String
+
 pub fn generate_subcommand_help(SubcommandSpec) -> String
 
 pub fn int_option(String, short? : Char, long? : String, help? : String, metavar? : String, required? : Bool, default? : Int, env? : String, validator? : (Int) -> Bool) -> OptionSpec

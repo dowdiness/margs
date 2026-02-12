@@ -14,7 +14,9 @@ pub fn[T] generate_metadata(parser : Parser[T]) -> String {
   }
 
   if parser.description != "" {
-    buf.write_string("  \"description\": \"\{escape_json(parser.description)}\",\n")
+    buf.write_string(
+      "  \"description\": \"\{escape_json(parser.description)}\",\n",
+    )
   }
 
   // Global options
@@ -69,14 +71,18 @@ fn option_to_json(opt : OptionSpec, indent~ : Int) -> String {
       buf.write_string("\{spaces}  \"key\": \"\{escape_json(d.key)}\",\n")
       buf.write_string("\{spaces}  \"type\": \"string\",\n")
       write_option_common_fields(buf, spaces, d.short, d.long, d.help)
-      buf.write_string("\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n")
+      buf.write_string(
+        "\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n",
+      )
       buf.write_string("\{spaces}  \"required\": \{d.required}\n")
     }
     IntOption(d) => {
       buf.write_string("\{spaces}  \"key\": \"\{escape_json(d.key)}\",\n")
       buf.write_string("\{spaces}  \"type\": \"int\",\n")
       write_option_common_fields(buf, spaces, d.short, d.long, d.help)
-      buf.write_string("\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n")
+      buf.write_string(
+        "\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n",
+      )
       buf.write_string("\{spaces}  \"required\": \{d.required}\n")
     }
     BoolFlag(d) => {
@@ -89,7 +95,9 @@ fn option_to_json(opt : OptionSpec, indent~ : Int) -> String {
       buf.write_string("\{spaces}  \"key\": \"\{escape_json(d.key)}\",\n")
       buf.write_string("\{spaces}  \"type\": \"string_list\",\n")
       write_option_common_fields(buf, spaces, d.short, d.long, d.help)
-      buf.write_string("\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n")
+      buf.write_string(
+        "\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n",
+      )
       buf.write_string("\{spaces}  \"required\": false\n")
     }
   }
@@ -105,7 +113,7 @@ fn write_option_common_fields(
   spaces : String,
   short : Char?,
   long : String?,
-  help : String
+  help : String,
 ) -> Unit {
   match short {
     Some(c) => buf.write_string("\{spaces}  \"short\": \"\{c}\",\n")
@@ -137,10 +145,14 @@ fn positionals_to_json(positionals : Array[PositionalSpec]) -> String {
     }
 
     buf.write_string("    {\n")
-    buf.write_string("      \"name\": \"\{escape_json(positionals[i].name)}\",\n")
+    buf.write_string(
+      "      \"name\": \"\{escape_json(positionals[i].name)}\",\n",
+    )
 
     if positionals[i].help != "" {
-      buf.write_string("      \"help\": \"\{escape_json(positionals[i].help)}\",\n")
+      buf.write_string(
+        "      \"help\": \"\{escape_json(positionals[i].help)}\",\n",
+      )
     }
 
     buf.write_string("      \"required\": \{positionals[i].required}\n")
@@ -180,7 +192,9 @@ fn subcommand_to_json(sub : SubcommandSpec, indent~ : Int) -> String {
   buf.write_string("\{spaces}  \"name\": \"\{escape_json(sub.name)}\",\n")
 
   if sub.description != "" {
-    buf.write_string("\{spaces}  \"description\": \"\{escape_json(sub.description)}\",\n")
+    buf.write_string(
+      "\{spaces}  \"description\": \"\{escape_json(sub.description)}\",\n",
+    )
   }
 
   // Aliases
@@ -216,11 +230,17 @@ fn subcommand_to_json(sub : SubcommandSpec, indent~ : Int) -> String {
         buf.write_string(",\n")
       }
       buf.write_string("\{spaces}    {\n")
-      buf.write_string("\{spaces}      \"name\": \"\{escape_json(sub.positionals[i].name)}\",\n")
+      buf.write_string(
+        "\{spaces}      \"name\": \"\{escape_json(sub.positionals[i].name)}\",\n",
+      )
       if sub.positionals[i].help != "" {
-        buf.write_string("\{spaces}      \"help\": \"\{escape_json(sub.positionals[i].help)}\",\n")
+        buf.write_string(
+          "\{spaces}      \"help\": \"\{escape_json(sub.positionals[i].help)}\",\n",
+        )
       }
-      buf.write_string("\{spaces}      \"required\": \{sub.positionals[i].required}\n")
+      buf.write_string(
+        "\{spaces}      \"required\": \{sub.positionals[i].required}\n",
+      )
       buf.write_string("\{spaces}    }")
     }
     buf.write_string("\n\{spaces}  ],\n")
@@ -234,7 +254,9 @@ fn subcommand_to_json(sub : SubcommandSpec, indent~ : Int) -> String {
         buf.write_string(",\n")
       }
       buf.write_string("\{spaces}    ")
-      buf.write_string(subcommand_to_json(sub.subcommands[i], indent=indent + 2))
+      buf.write_string(
+        subcommand_to_json(sub.subcommands[i], indent=indent + 2),
+      )
     }
     buf.write_string("\n\{spaces}  ]\n")
   } else {
