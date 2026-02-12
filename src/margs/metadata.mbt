@@ -295,7 +295,10 @@ fn escape_json(s : String) -> String {
       buf.write_string("\\t")
     } else {
       // Convert UInt16 to Char, then to String
-      buf.write_string(Char::from_int(c.to_int()).to_string())
+      match c.to_int().to_char() {
+        Some(ch) => buf.write_string(ch.to_string())
+        None => () // Skip invalid characters
+      }
     }
   }
   buf.to_string()
