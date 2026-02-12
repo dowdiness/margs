@@ -1,24 +1,26 @@
 # margs
 
-A simple command-line argument parser for MoonBit.
+`margs` is a type-safe command-line argument parser for MoonBit.
 
-## Features
+It provides a small builder API for defining options, flags, positionals, and subcommands, then parsing CLI input into typed values.
 
-- **Type-safe parsing** - Define your CLI structure once, get strongly-typed results
-- **Rich option types** - String, Int, Bool flags, and String lists
-- **Subcommands** - Nested subcommands with their own options and positionals
-- **Flexible syntax** - Supports both short (`-p`) and long (`--port`) options
-- **Validators** - Built-in and custom validation for option values
-- **Help generation** - Automatic help text generation from your specification
-- **Positional arguments** - Required and optional positional arguments
-- **Smart defaults** - Common CLI patterns like `--verbose`, `--port`, `--file`
-- **Typo suggestions** - Helpful "did you mean?" suggestions for mistyped options and commands
-- **Version & examples** - Display version information and usage examples in help text
-- **Exit codes** - Standard exit codes for proper CLI behavior
+## Current Status
+
+Implemented today:
+- Typed options: `String`, `Int`, `Bool` flags, and repeated `String` lists
+- Positional arguments and nested subcommands
+- Auto-generated help text (main parser + subcommands)
+- Built-in validators (`port_option`, `file_option`, `url_option`, `verbose_flag`, `quiet_flag`)
+- Typo suggestions for unknown options/commands
+- Structured parse errors and exit-code mapping
+
+Not implemented yet:
+- High-level command handler wrapper API (`create_cli`-style)
+- Env/config binding, middleware hooks, shell completion, prompts, i18n, async handlers
 
 ## Installation
 
-Add margs to your `moon.mod.json`:
+Add to `moon.mod.json`:
 
 ```json
 {
@@ -28,7 +30,7 @@ Add margs to your `moon.mod.json`:
 }
 ```
 
-Or install via moon:
+Or install via MoonBit tooling:
 
 ```bash
 moon install dowdiness/margs
@@ -39,410 +41,89 @@ moon install dowdiness/margs
 ```moonbit
 fn main {
   let app = @margs.parser(
-    "myapp",
-    description="A simple CLI tool",
+    "hello",
+    description="Greeting CLI",
     builder=fn(args) {
-      let name = args.get_string("name").unwrap_or("World")
-      let count = args.get_int("count").unwrap_or(1)
+      let name = match args.get_string("name") {
+        Some(v) => v
+        None => "World"
+      }
+      let count = match args.get_int("count") {
+        Some(v) => v
+        None => 1
+      }
       for i = 0; i < count; i = i + 1 {
         println("Hello, \{name}!")
       }
     },
   )
-  .with_version("1.0.0")
-  .add_example("myapp --name Alice --count 3", "Greet Alice three times")
-  .add_option(@margs.str_option(
-    "name",
-    short='n',
-    long="name",
-    help="Name to greet",
-    default="World",
-  ))
-  .add_option(@margs.int_option(
-    "count",
-    short='c',
-    long="count",
-    help="Number of greetings",
-    default=1,
-  ))
+  .with_version("0.1.0")
+  .add_option(@margs.str_option("name", short='n', long="name", default="World"))
+  .add_option(@margs.int_option("count", short='c', long="count", default=1))
 
   let _ : Result[Unit, Unit] = Ok(app.run()) catch {
     err => {
       match err {
         @margs.HelpRequested(_) => println(@margs.generate_help(app))
-        _ => println("Error: \{err}")
+        @margs.MissingRequired(msg)
+        | @margs.InvalidValue(msg)
+        | @margs.UnknownOption(msg)
+        | @margs.UnknownCommand(msg)
+        | @margs.InvalidFormat(msg) => println("Error: \{msg}")
       }
-      let exit_code = @margs.exit_code_for_error(err)
-      @sys.exit(exit_code.code())
+      @sys.exit(@margs.exit_code_for_error(err).code())
       Ok(())
     }
   }
 }
 ```
 
-Usage:
-```bash
-$ myapp --name Alice --count 3
-Hello, Alice!
-Hello, Alice!
-Hello, Alice!
+## Core API
 
-$ myapp --help
-A simple CLI tool
+- Parser/builders: `@margs.parser`, `@margs.subcommand`
+- Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
+- Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
+- Help output: `@margs.generate_help`, `@margs.generate_subcommand_help`
+- Parsed accessors: `get_string`, `get_int`, `get_bool`, `get_string_list`, `get_positional`, `require_string`, `require_int`
 
-Version: 1.0.0
+## Example App
 
-Usage: myapp [OPTIONS]
+A complete demo CLI is in `src/example/main.mbt`.
 
-Examples:
-  $ myapp --name Alice --count 3
-      Greet Alice three times
-
-Options:
-  -n, --name <VALUE>   Name to greet
-  -c, --count <NUM>    Number of greetings
-  -h, --help           Print help
-
-$ myapp --nam Alice
-Error: unknown option '--nam'. Did you mean '--name'?
-```
-
-## Option Types
-
-### String Options
-
-```moonbit
-@margs.str_option(
-  "output",
-  short='o',
-  long="output",
-  help="Output file path",
-  metavar="FILE",
-  required=true,
-  default="out.txt",
-  validator=fn(s) { s.length() > 0 },
-)
-```
-
-### Integer Options
-
-```moonbit
-@margs.int_option(
-  "port",
-  short='p',
-  long="port",
-  help="Port number",
-  metavar="PORT",
-  default=8080,
-  validator=fn(n) { n > 0 && n <= 65535 },
-)
-```
-
-### Boolean Flags
-
-```moonbit
-@margs.flag(
-  "verbose",
-  short='v',
-  long="verbose",
-  help="Enable verbose output",
-  default=false,
-)
-```
-
-### String List Options
-
-Can be specified multiple times to collect multiple values:
-
-```moonbit
-@margs.str_list_option(
-  "target",
-  short='t',
-  long="target",
-  help="Build target",
-  metavar="TARGET",
-)
-```
-
-Usage: `myapp -t wasm -t js -t native`
-
-## Positional Arguments
-
-```moonbit
-@margs.positional(
-  "input",
-  help="Input file path",
-  required=true,
-)
-```
-
-## Subcommands
-
-Create complex CLI tools with nested subcommands:
-
-```moonbit
-let serve_cmd = @margs.subcommand(
-  "serve",
-  description="Start development server",
-  aliases=["s"],
-  options=[
-    @margs.str_option("host", short='H', long="host", default="localhost"),
-    @margs.port_option(default=3000),
-  ],
-)
-
-let app = @margs.parser(
-  "mytool",
-  description="A CLI with subcommands",
-  builder=fn(args) {
-    let cmd = if args.command_path.length() > 1 {
-      args.command_path[1]
-    } else {
-      ""
-    }
-    match cmd {
-      "serve" => {
-        let host = args.get_string("host").unwrap_or("localhost")
-        let port = args.get_int("port").unwrap_or(3000)
-        println("Server running on http://\{host}:\{port}")
-      }
-      _ => println("No command specified")
-    }
-  },
-)
-.add_subcommand(serve_cmd)
-```
-
-## Accessing Parsed Values
-
-The `ParsedArgs` type provides type-safe accessors:
-
-```moonbit
-// Optional values (return Option[T])
-args.get_string("key")      // -> String?
-args.get_int("key")         // -> Int?
-args.get_bool("key")        // -> Bool (defaults to false)
-args.get_string_list("key") // -> Array[String]
-
-// Required values (raise ParseError if missing)
-args.require_string("key")  // -> String raise ParseError
-args.require_int("key")     // -> Int raise ParseError
-
-// Positional arguments
-args.get_positional(0)      // -> String?
-
-// Command path (e.g., ["app", "subcommand"])
-args.command_path           // -> Array[String]
-```
-
-## Common Validators
-
-Pre-built validators for common patterns:
-
-```moonbit
-// Port number (1-65535)
-@margs.port_option(key="port", short='p', default=8080)
-
-// File path
-@margs.file_option(key="config", short='c', required=true)
-
-// URL
-@margs.url_option(key="endpoint", short='u')
-
-// Verbose flag
-@margs.verbose_flag()
-
-// Quiet flag
-@margs.quiet_flag()
-```
-
-## Error Handling
-
-All parsing errors are represented by the `ParseError` suberror type:
-
-```moonbit
-@margs.MissingRequired(String)  // Required option/positional missing
-@margs.InvalidValue(String)     // Validation failed
-@margs.UnknownOption(String)    // Unrecognized option
-@margs.UnknownCommand(String)   // Unrecognized subcommand
-@margs.InvalidFormat(String)    // Malformed argument
-@margs.HelpRequested(String)    // User requested help
-```
-
-Handle errors with pattern matching:
-
-```moonbit
-let _ = Ok(app.run()) catch {
-  @margs.HelpRequested(_) => {
-    println(@margs.generate_help(app))
-    Ok(())
-  }
-  @margs.MissingRequired(msg) => {
-    println("Error: \{msg}")
-    Ok(())
-  }
-  @margs.InvalidValue(msg) => {
-    println("Error: \{msg}")
-    Ok(())
-  }
-}
-```
-
-## Help Generation
-
-Help text is automatically generated from your parser specification:
-
-```moonbit
-// For main parser
-@margs.generate_help(app)
-
-// For subcommands
-@margs.generate_subcommand_help(subcommand_spec)
-```
-
-### Version and Examples
-
-Enhance your help text with version information and usage examples:
-
-```moonbit
-let app = @margs.parser("myapp", builder=fn(args) { ... })
-  .with_version("1.2.3")
-  .add_example("myapp serve --port 8080", "Start server on port 8080")
-  .add_example("myapp build -o dist", "Build to dist directory")
-```
-
-The help output will include:
-
-```
-A demo project tool
-
-Version: 1.2.3
-
-Usage: myapp [OPTIONS] <COMMAND>
-
-Examples:
-  $ myapp serve --port 8080
-      Start server on port 8080
-
-  $ myapp build -o dist
-      Build to dist directory
-
-...
-```
-
-## Typo Suggestions
-
-When users mistype options or commands, margs provides helpful suggestions:
+Run it:
 
 ```bash
-$ myapp serv
-Error: unknown command 'serv'. Did you mean 'serve'?
-
-$ myapp serve --prot 8080
-Error: unknown option '--prot'. Did you mean '--port'?
-
-$ myapp -P
-Error: unknown option '-P'. Did you mean '-p'?
-```
-
-The suggestion engine uses Levenshtein distance to find the closest match within an edit distance of 2.
-
-## Exit Codes
-
-Use standard exit codes for proper CLI behavior:
-
-```moonbit
-let _ = Ok(app.run()) catch {
-  err => {
-    match err {
-      @margs.HelpRequested(_) => println(@margs.generate_help(app))
-      _ => println("Error: \{err}")
-    }
-    let exit_code = @margs.exit_code_for_error(err)
-    @sys.exit(exit_code.code())
-    Ok(())
-  }
-}
-```
-
-Exit codes:
-- `0` - Success (including help requested)
-- `1` - General error
-- `2` - Misused command (unknown option/command, missing required)
-- `3` - Invalid input (validation failed, invalid format)
-
-## Argument Syntax
-
-margs supports standard CLI conventions:
-
-```bash
-# Long options
---name value
---name=value
-
-# Short options
--n value
--nvalue
-
-# Flags (boolean)
--v
---verbose
-
-# Combining short flags
--vvv  # Multiple verbose flags
--abc  # Equivalent to -a -b -c
-
-# End of options marker
--- --not-an-option  # Everything after -- is positional
-
-# Help
---help
--h
-```
-
-## Advanced Example
-
-See the complete example in `src/example/main.mbt`:
-
-```bash
-# Run the example
 moon run src/example -- --help
-moon run src/example -- serve --port 8080
-moon run src/example -- build -o dist -t wasm -t js
-moon run src/example -- init my-project
+moon run src/example -- serve --help
+moon run src/example -- build -o out -t wasm -t js
+moon run src/example -- init my-app
 ```
 
-## Testing
-
-Run tests with:
+## Development
 
 ```bash
-moon test
+moon check        # fast type-check
+moon build        # build module
+moon test         # run test suite
+moon test -v      # verbose tests
+moon run src/example -- --help
 ```
 
-## Project Structure
+Project layout:
+- `src/margs/`: library implementation (`types.mbt`, `builder.mbt`, `parser.mbt`, `help.mbt`, `validators.mbt`, `exit_codes.mbt`)
+- `src/example/`: demo CLI using the library
+- `docs/`: reports and planning docs
 
-```
-margs/
-├── src/
-│   ├── margs/
-│   │   ├── types.mbt        # Core types and data structures
-│   │   ├── builder.mbt      # Builder API for parser construction
-│   │   ├── parser.mbt       # Parsing engine
-│   │   ├── help.mbt         # Help text generation
-│   │   ├── validators.mbt   # Common validators
-│   │   ├── utils.mbt        # Utility functions
-│   │   ├── exit_codes.mbt   # Exit code helpers
-│   │   └── *_test.mbt       # Unit tests
-│   └── example/
-│       └── main.mbt         # Demo CLI application
-├── moon.mod.json
-└── README.md
-```
+## Documents
 
-## Design Philosophy
+- `docs/margs_cli_library_report.md`: architecture review, API analysis, and improvement proposals.
 
-- **Type safety first** - Leverage MoonBit's type system to catch errors at compile time
-- **Ergonomic API** - Fluent builder pattern for intuitive parser construction
-- **No magic** - Explicit, predictable behavior without hidden surprises
-- **Standard conventions** - Follow established CLI patterns (POSIX-style options)
+## Future Plans (Roadmap)
+
+Planned direction from `docs/margs_cli_library_report.md`:
+
+1. Phase 1: high-level wrapper API for command handlers, automatic help/version flow, and migration docs.
+2. Phase 2: middleware/hooks, environment/config integration, shell completion, and CLI test helpers.
+3. Phase 3: interactive prompts, i18n support, and async-oriented command workflows.
+
+These roadmap items are proposals and are not fully implemented in the current codebase.
