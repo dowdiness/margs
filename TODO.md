@@ -10,10 +10,10 @@
 - [x] Add automatic help/version behavior at wrapper level.
 - [x] Port `src/example/main.mbt` to wrapper API to validate ergonomics.
 - [x] Add wrapper-focused tests for dispatch, nested subcommands, and global options.
+- [x] Define unified error boundary for parse errors and handler runtime errors.
+- [x] Use `GeneralError` for runtime handler failure path.
 
 ## Phase 1 - Wrapper MVP + Extensibility
-- [ ] Define unified error boundary for parse errors and handler runtime errors.
-- [ ] Use `GeneralError` for runtime handler failure path.
 - [ ] Define and implement middleware hooks (before/after handler).
 - [ ] Add test helpers for in-process CLI invocation and assertions.
 - [ ] Explore async-friendly handler support (even experimental).
