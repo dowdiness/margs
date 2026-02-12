@@ -350,7 +350,8 @@ fn resolve_help_subcommand(
         }
       }
       ['-', .. rest] =>
-        if short_cluster_consumes_next_arg(rest, options) && pos.val + 1 < args.length() {
+        if short_cluster_consumes_next_arg(rest, options) &&
+          pos.val + 1 < args.length() {
           pos.val = pos.val + 1
         }
       _ =>
@@ -403,11 +404,12 @@ pub fn Cli::run(self : Cli) -> Unit {
     err => {
       match err {
         HelpRequested(_) =>
-          match resolve_help_subcommand(
-            args,
-            self.options,
-            root_subcommand_specs(self.commands),
-          ) {
+          match
+            resolve_help_subcommand(
+              args,
+              self.options,
+              root_subcommand_specs(self.commands),
+            ) {
             Some(spec) => println(generate_subcommand_help(spec))
             None => println(generate_help(self.to_parser()))
           }

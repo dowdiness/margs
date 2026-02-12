@@ -100,10 +100,12 @@ Project layout:
 
 ## Future Plans (Roadmap)
 
-Planned direction from `docs/margs_cli_library_report.md`:
+Planned direction (merged with what's already implemented):
 
-1. Phase 1 (in progress): wrapper API is implemented; migration docs and refinement are remaining.
-2. Phase 2: middleware/hooks, environment/config integration, shell completion, and CLI test helpers.
-3. Phase 3: interactive prompts, i18n support, and async-oriented command workflows.
+1. Done: wrapper API, alias/nested command dispatch, and example CLI.
+2. Phase 1: middleware/hooks, CLI test helpers, and async-friendly handlers.
+3. Phase 2: env/config integration, structured output helpers, metadata versioning.
+4. Phase 3: shell completion, interactive prompts, i18n support.
+5. Phase 4: plugin system and code generation/scaffolding.
 
 These roadmap items are proposals and are not fully implemented in the current codebase.
