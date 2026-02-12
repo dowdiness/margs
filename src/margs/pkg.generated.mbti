@@ -2,7 +2,11 @@
 package "dowdiness/margs/margs"
 
 // Values
+pub fn async_command(String, description? : String, aliases? : Array[String], handler~ : (ParsedArgs) -> Unit raise) -> AsyncCliCommand
+
 pub fn command(String, description? : String, aliases? : Array[String], handler~ : (ParsedArgs) -> Unit raise) -> CliCommand
+
+pub fn create_async_cli(String, description? : String, version? : String) -> AsyncCli
 
 pub fn create_cli(String, description? : String, version? : String) -> Cli
 
@@ -76,6 +80,49 @@ pub enum ArgValue {
 }
 pub impl Eq for ArgValue
 pub impl Show for ArgValue
+
+pub struct AsyncCli {
+  name : String
+  description : String
+  version : String?
+  examples : Array[(String, String)]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  commands : Array[AsyncCliCommand]
+  handler : ((ParsedArgs) -> Unit raise)?
+  before_hooks : Array[(ParsedArgs) -> Unit raise]
+  after_hooks : Array[(ParsedArgs) -> Unit raise]
+}
+pub fn AsyncCli::add_after_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCli::add_before_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCli::add_command(Self, AsyncCliCommand) -> Self
+pub fn AsyncCli::add_example(Self, String, String) -> Self
+pub fn AsyncCli::add_option(Self, OptionSpec) -> Self
+pub fn AsyncCli::add_positional(Self, PositionalSpec) -> Self
+pub fn AsyncCli::parse(Self, Array[String]) -> Unit raise ParseError
+pub fn AsyncCli::run(Self) -> Unit
+pub fn AsyncCli::run_async(Self) -> Unit
+pub fn AsyncCli::run_async_args(Self, Array[String]) -> Unit raise ParseError
+pub fn AsyncCli::run_for_test(Self, Array[String]) -> CliTestResult
+pub fn AsyncCli::set_handler(Self, handler~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCli::to_cli(Self) -> Cli
+pub fn AsyncCli::with_version(Self, String) -> Self
+
+pub struct AsyncCliCommand {
+  spec : SubcommandSpec
+  handler : (ParsedArgs) -> Unit raise
+  commands : Array[AsyncCliCommand]
+  before_hooks : Array[(ParsedArgs) -> Unit raise]
+  after_hooks : Array[(ParsedArgs) -> Unit raise]
+}
+pub fn AsyncCliCommand::add_after_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCliCommand::add_before_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCliCommand::add_command(Self, Self) -> Self
+pub fn AsyncCliCommand::add_option(Self, OptionSpec) -> Self
+pub fn AsyncCliCommand::add_positional(Self, PositionalSpec) -> Self
+pub fn AsyncCliCommand::add_subcommand(Self, SubcommandSpec) -> Self
+pub fn AsyncCliCommand::set_handler(Self, handler~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn AsyncCliCommand::to_cli_command(Self) -> CliCommand
 
 pub struct BoolFlagDef {
   key : String

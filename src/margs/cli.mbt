@@ -34,12 +34,60 @@ pub struct CliTestResult {
 }
 
 ///|
+/// Async-friendly command skeleton.
+/// Currently delegates to sync parsing/dispatch until native async handlers are integrated.
+pub struct AsyncCliCommand {
+  spec : SubcommandSpec
+  handler : (ParsedArgs) -> Unit raise Error
+  commands : Array[AsyncCliCommand]
+  before_hooks : Array[(ParsedArgs) -> Unit raise Error]
+  after_hooks : Array[(ParsedArgs) -> Unit raise Error]
+}
+
+///|
+/// Async-friendly CLI skeleton.
+/// This provides API shape compatibility for future async handler integration.
+pub struct AsyncCli {
+  name : String
+  description : String
+  version : String?
+  examples : Array[(String, String)]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  commands : Array[AsyncCliCommand]
+  handler : ((ParsedArgs) -> Unit raise Error)?
+  before_hooks : Array[(ParsedArgs) -> Unit raise Error]
+  after_hooks : Array[(ParsedArgs) -> Unit raise Error]
+}
+
+///|
 /// Create a new high-level CLI wrapper.
 pub fn create_cli(
   name : String,
   description? : String = "",
   version? : String,
 ) -> Cli {
+  {
+    name,
+    description,
+    version,
+    examples: [],
+    options: [],
+    positionals: [],
+    commands: [],
+    handler: None,
+    before_hooks: [],
+    after_hooks: [],
+  }
+}
+
+///|
+/// Create a new async-friendly CLI skeleton.
+pub fn create_async_cli(
+  name : String,
+  description? : String = "",
+  version? : String,
+) -> AsyncCli {
   {
     name,
     description,
@@ -62,6 +110,23 @@ pub fn command(
   aliases? : Array[String] = [],
   handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
+  {
+    spec: subcommand(name, description~, aliases~),
+    handler,
+    commands: [],
+    before_hooks: [],
+    after_hooks: [],
+  }
+}
+
+///|
+/// Create an async-friendly command skeleton.
+pub fn async_command(
+  name : String,
+  description? : String = "",
+  aliases? : Array[String] = [],
+  handler~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCliCommand {
   {
     spec: subcommand(name, description~, aliases~),
     handler,
@@ -129,6 +194,73 @@ pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
 }
 
 ///|
+/// Set or replace the root async skeleton handler.
+pub fn AsyncCli::set_handler(
+  self : AsyncCli,
+  handler~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCli {
+  { ..self, handler: Some(handler) }
+}
+
+///|
+/// Add a hook that runs before async skeleton dispatch.
+pub fn AsyncCli::add_before_hook(
+  self : AsyncCli,
+  hook~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCli {
+  { ..self, before_hooks: self.before_hooks + [hook] }
+}
+
+///|
+/// Add a hook that runs after async skeleton handler success.
+pub fn AsyncCli::add_after_hook(
+  self : AsyncCli,
+  hook~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCli {
+  { ..self, after_hooks: self.after_hooks + [hook] }
+}
+
+///|
+/// Add a global option to the async skeleton.
+pub fn AsyncCli::add_option(self : AsyncCli, opt : OptionSpec) -> AsyncCli {
+  { ..self, options: self.options + [opt] }
+}
+
+///|
+/// Add a root positional argument to the async skeleton.
+pub fn AsyncCli::add_positional(
+  self : AsyncCli,
+  pos : PositionalSpec,
+) -> AsyncCli {
+  { ..self, positionals: self.positionals + [pos] }
+}
+
+///|
+/// Add a usage example to async skeleton help output.
+pub fn AsyncCli::add_example(
+  self : AsyncCli,
+  cmd : String,
+  desc : String,
+) -> AsyncCli {
+  { ..self, examples: self.examples + [(cmd, desc)] }
+}
+
+///|
+/// Set async skeleton version information.
+pub fn AsyncCli::with_version(self : AsyncCli, version : String) -> AsyncCli {
+  { ..self, version: Some(version) }
+}
+
+///|
+/// Add a command to the async skeleton.
+pub fn AsyncCli::add_command(
+  self : AsyncCli,
+  cmd : AsyncCliCommand,
+) -> AsyncCli {
+  { ..self, commands: self.commands + [cmd] }
+}
+
+///|
 /// Add an option to a command.
 pub fn CliCommand::add_option(
   self : CliCommand,
@@ -192,6 +324,73 @@ pub fn CliCommand::set_handler(
   self : CliCommand,
   handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
+  { ..self, handler, }
+}
+
+///|
+/// Add an option to an async skeleton command.
+pub fn AsyncCliCommand::add_option(
+  self : AsyncCliCommand,
+  opt : OptionSpec,
+) -> AsyncCliCommand {
+  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
+}
+
+///|
+/// Add a positional argument to an async skeleton command.
+pub fn AsyncCliCommand::add_positional(
+  self : AsyncCliCommand,
+  pos : PositionalSpec,
+) -> AsyncCliCommand {
+  { ..self, spec: { ..self.spec, positionals: self.spec.positionals + [pos] } }
+}
+
+///|
+/// Add a nested subcommand spec to an async skeleton command.
+pub fn AsyncCliCommand::add_subcommand(
+  self : AsyncCliCommand,
+  sub : SubcommandSpec,
+) -> AsyncCliCommand {
+  { ..self, spec: { ..self.spec, subcommands: self.spec.subcommands + [sub] } }
+}
+
+///|
+/// Add a nested command to an async skeleton command.
+pub fn AsyncCliCommand::add_command(
+  self : AsyncCliCommand,
+  cmd : AsyncCliCommand,
+) -> AsyncCliCommand {
+  {
+    ..self,
+    spec: { ..self.spec, subcommands: self.spec.subcommands + [cmd.spec] },
+    commands: self.commands + [cmd],
+  }
+}
+
+///|
+/// Add a hook that runs before this async skeleton command handler.
+pub fn AsyncCliCommand::add_before_hook(
+  self : AsyncCliCommand,
+  hook~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCliCommand {
+  { ..self, before_hooks: self.before_hooks + [hook] }
+}
+
+///|
+/// Add a hook that runs after this async skeleton command handler succeeds.
+pub fn AsyncCliCommand::add_after_hook(
+  self : AsyncCliCommand,
+  hook~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCliCommand {
+  { ..self, after_hooks: self.after_hooks + [hook] }
+}
+
+///|
+/// Set or replace an async skeleton command handler.
+pub fn AsyncCliCommand::set_handler(
+  self : AsyncCliCommand,
+  handler~ : (ParsedArgs) -> Unit raise Error,
+) -> AsyncCliCommand {
   { ..self, handler, }
 }
 
@@ -393,6 +592,83 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
           }
       }
   }
+}
+
+///|
+/// Convert an async skeleton command into a concrete sync wrapper command.
+pub fn AsyncCliCommand::to_cli_command(self : AsyncCliCommand) -> CliCommand {
+  let children : Array[CliCommand] = []
+  for cmd in self.commands {
+    let child = cmd.to_cli_command()
+    children.push(child)
+  }
+  {
+    spec: self.spec,
+    handler: self.handler,
+    commands: children,
+    before_hooks: self.before_hooks,
+    after_hooks: self.after_hooks,
+  }
+}
+
+///|
+/// Convert async skeleton CLI into the concrete sync wrapper.
+pub fn AsyncCli::to_cli(self : AsyncCli) -> Cli {
+  let commands : Array[CliCommand] = []
+  for cmd in self.commands {
+    commands.push(cmd.to_cli_command())
+  }
+  {
+    name: self.name,
+    description: self.description,
+    version: self.version,
+    examples: self.examples,
+    options: self.options,
+    positionals: self.positionals,
+    commands,
+    handler: self.handler,
+    before_hooks: self.before_hooks,
+    after_hooks: self.after_hooks,
+  }
+}
+
+///|
+/// Parse explicit args through the async skeleton wrapper.
+pub fn AsyncCli::parse(
+  self : AsyncCli,
+  args : Array[String],
+) -> Unit raise ParseError {
+  self.to_cli().parse(args)
+}
+
+///|
+/// Run async skeleton in-process for tests.
+pub fn AsyncCli::run_for_test(
+  self : AsyncCli,
+  args : Array[String],
+) -> CliTestResult {
+  self.to_cli().run_for_test(args)
+}
+
+///|
+/// Run async skeleton using process args.
+pub fn AsyncCli::run(self : AsyncCli) -> Unit {
+  self.to_cli().run()
+}
+
+///|
+/// Placeholder async-oriented entry that currently delegates to sync parsing.
+pub fn AsyncCli::run_async_args(
+  self : AsyncCli,
+  args : Array[String],
+) -> Unit raise ParseError {
+  self.parse(args)
+}
+
+///|
+/// Placeholder async-oriented run entry that currently delegates to sync run.
+pub fn AsyncCli::run_async(self : AsyncCli) -> Unit {
+  self.run()
 }
 
 ///|

@@ -220,3 +220,37 @@ test "run_for_test maps parse failures to exit code and output" {
     _ => inspect(false, content="true")
   }
 }
+
+///|
+test "async skeleton dispatches command handler" {
+  let called = Ref::new(false)
+  let cli = create_async_cli("demo").add_command(
+    async_command("run", handler=fn(_) { called.val = true }),
+  )
+
+  cli.parse(["run"])
+  inspect(called.val, content="true")
+}
+
+///|
+test "async skeleton exposes in-process test helper" {
+  let cli = create_async_cli("demo").add_command(
+    async_command("run", handler=fn(_) { () }),
+  )
+  let result = cli.run_for_test(["run"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.error is None, content="true")
+}
+
+///|
+test "async skeleton hook order delegates through sync wrapper" {
+  let order : Array[String] = []
+  let cli = create_async_cli("demo")
+    .add_before_hook(hook=fn(_) { order.push("before") })
+    .add_after_hook(hook=fn(_) { order.push("after") })
+    .add_command(async_command("run", handler=fn(_) { order.push("handler") }))
+  cli.parse(["run"])
+  inspect(order[0], content="before")
+  inspect(order[1], content="handler")
+  inspect(order[2], content="after")
+}

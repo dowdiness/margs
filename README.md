@@ -18,9 +18,10 @@ Implemented today:
 - High-level command wrapper API with global options and per-command handlers
 - Middleware hooks (`add_before_hook` / `add_after_hook`) on CLI and commands
 - In-process test helper (`run_for_test`) for CLI assertions
+- Async-friendly skeleton API (`create_async_cli` / `async_command`) delegating to current sync runtime
 
 Not implemented yet:
-- Env/config binding, shell completion, prompts, i18n, async handlers
+- Env/config binding, shell completion, prompts, i18n, true async runtime handlers
 
 ## Installation
 
@@ -62,6 +63,7 @@ fn main {
 ## Core API
 
 - Wrapper API: `@margs.create_cli`, `@margs.command`, `Cli::add_command`, `Cli::add_before_hook`, `Cli::add_after_hook`, `Cli::run`, `Cli::run_for_test`
+- Async skeleton API: `@margs.create_async_cli`, `@margs.async_command`, `AsyncCli::run`, `AsyncCli::run_for_test`, `AsyncCli::run_async_args`
 - Parser/builders: `@margs.parser`, `@margs.subcommand`
 - Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
