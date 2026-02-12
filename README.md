@@ -66,6 +66,7 @@ fn main {
 - Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
 - Help output: `@margs.generate_help`, `@margs.generate_subcommand_help`
+- Metadata generation: `@margs.generate_metadata`
 - Parsed accessors: `get_string`, `get_int`, `get_bool`, `get_string_list`, `get_positional`, `require_string`, `require_int`
 - Output helpers: `@margs.log_info`, `@margs.log_warn`, `@margs.log_error`, `@margs.log_debug`, `@margs.success`, `@margs.failure`, `@margs.step`, `@margs.section`, `@margs.kv`
 
@@ -190,6 +191,70 @@ myapp
 - Simple flat JSON structure
 - Works with all option types (string, int, bool, list)
 - Auto-discovery with `discover_config_file("myapp")` (checks `.myapprc`, `.myapprc.json`)
+
+## Metadata Generation
+
+Generate JSON metadata from your CLI structure for shell completion scripts:
+
+```moonbit
+let cli = create_cli("myapp", version="1.0.0")
+  .add_option(str_option("host", long="host", help="Server hostname"))
+  .add_option(int_option("port", short='p', help="Server port"))
+  .add_command(
+    command("serve", handler=fn(_) { () })
+      .add_option(flag("daemon", short='d', help="Run as daemon"))
+  )
+
+let metadata = generate_metadata(cli.parser)
+println(metadata)
+```
+
+**Output** (formatted JSON):
+```json
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "options": [
+    {
+      "key": "host",
+      "type": "string",
+      "long": "host",
+      "help": "Server hostname",
+      "metavar": "VALUE",
+      "required": false
+    },
+    {
+      "key": "port",
+      "type": "int",
+      "short": "p",
+      "help": "Server port",
+      "metavar": "NUM",
+      "required": false
+    }
+  ],
+  "commands": [
+    {
+      "name": "serve",
+      "options": [
+        {
+          "key": "daemon",
+          "type": "bool",
+          "short": "d",
+          "help": "Run as daemon",
+          "required": false
+        }
+      ],
+      "subcommands": []
+    }
+  ]
+}
+```
+
+**Use cases:**
+- Generate shell completion scripts (bash, zsh, fish)
+- Create documentation automatically
+- Build IDE/editor integrations
+- Generate man pages
 
 ## Structured Output
 

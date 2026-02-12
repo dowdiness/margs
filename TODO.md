@@ -24,7 +24,7 @@
 - [x] Add config-file backed defaults (start with one simple format).
 - [x] Document precedence: CLI args > env > config > default.
 - [x] Add structured output helpers (JSON/logging).
-- [ ] Version command metadata for stable completion output.
+- [x] Version command metadata for stable completion output.
 
 ## Phase 3 - Developer Experience
 - [ ] Add shell completion generation (bash/zsh/fish).
