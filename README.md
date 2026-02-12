@@ -106,7 +106,54 @@ When an option value is specified in multiple places, `margs` resolves it using 
    int_option("port", default=8080)
    ```
 
-**Current status:** Only CLI arguments and defaults are implemented. Environment variable and config file support are planned for Phase 2.
+**Current status:**
+- ✅ CLI arguments and defaults
+- ✅ Environment variables (strings, ints, bools)
+- 🚧 Config file support (planned)
+
+## Environment Variable Support
+
+Options can fall back to environment variables before using defaults:
+
+```moonbit
+let cli = create_cli("myapp")
+  .add_option(str_option(
+    "host",
+    long="host",
+    env="MYAPP_HOST",           // Falls back to $MYAPP_HOST
+    default="localhost",
+    help="Server hostname"
+  ))
+  .add_option(int_option(
+    "port",
+    long="port",
+    env="MYAPP_PORT",           // Falls back to $MYAPP_PORT
+    default=8080,
+    help="Server port"
+  ))
+  .add_option(flag(
+    "verbose",
+    short='v',
+    env="MYAPP_VERBOSE",        // Accepts: 1, true, yes, on
+    help="Enable verbose logging"
+  ))
+```
+
+**Precedence**: CLI arguments > environment variables > default values
+
+```bash
+# Uses default
+myapp
+# → host=localhost, port=8080
+
+# Uses env var
+MYAPP_PORT=3000 myapp
+# → host=localhost, port=3000
+
+# CLI overrides env var
+MYAPP_PORT=3000 myapp --port 9000
+# → host=localhost, port=9000
+```
 
 ## Structured Output
 
