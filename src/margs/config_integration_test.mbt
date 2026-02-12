@@ -93,10 +93,18 @@ test "full precedence chain: cli > env > config > default" {
   @sys.set_env_var("TEST_GAMMA", "from_env")
 
   let p = parser("test", builder=fn(args) { args })
-    .add_option(str_option("alpha", long="alpha", env="TEST_ALPHA", default="default"))
-    .add_option(str_option("beta", long="beta", env="TEST_BETA", default="default"))
-    .add_option(str_option("gamma", long="gamma", env="TEST_GAMMA", default="default"))
-    .add_option(str_option("delta", long="delta", env="TEST_DELTA", default="default"))
+    .add_option(
+      str_option("alpha", long="alpha", env="TEST_ALPHA", default="default"),
+    )
+    .add_option(
+      str_option("beta", long="beta", env="TEST_BETA", default="default"),
+    )
+    .add_option(
+      str_option("gamma", long="gamma", env="TEST_GAMMA", default="default"),
+    )
+    .add_option(
+      str_option("delta", long="delta", env="TEST_DELTA", default="default"),
+    )
     .with_config_file(".test_config5.json")
 
   let result = p.parse(["--gamma", "from_cli"])
