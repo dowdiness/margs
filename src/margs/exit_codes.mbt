@@ -31,11 +31,12 @@ pub fn ExitCode::code(self : ExitCode) -> Int {
 }
 
 ///|
-/// Convert ParseError to appropriate exit code
+/// Convert a raised error to an appropriate exit code.
 pub fn exit_code_for_error(err : ParseError) -> ExitCode {
   match err {
     HelpRequested(_) => Success
     UnknownOption(_) | UnknownCommand(_) | MissingRequired(_) => MisusedCommand
     InvalidValue(_) | InvalidFormat(_) => InvalidInput
+    HandlerError(_) => GeneralError
   }
 }

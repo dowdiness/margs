@@ -146,6 +146,7 @@ pub suberror ParseError {
   UnknownCommand(String)
   InvalidFormat(String)
   HelpRequested(String)
+  HandlerError(String)
 }
 
 ///|

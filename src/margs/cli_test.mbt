@@ -87,3 +87,20 @@ test "cli version appears in generated help" {
   let help = generate_help(cli.to_parser())
   inspect(help.contains("Version: 1.2.3"), content="true")
 }
+
+///|
+test "cli raises general error on handler failure" {
+  let cli = create_cli("demo").add_command(
+    command("deploy", handler=fn(_) raise { raise Failure::Failure("boom") }),
+  )
+
+  let result : Result[Unit, Error] = Ok(cli.parse(["deploy"])) catch {
+    e => Err(e)
+  }
+  match result {
+    Ok(_) => inspect(false, content="true")
+    Err(ParseError::HandlerError(msg)) =>
+      inspect(msg, content="Failure(\"boom\")")
+    Err(_) => inspect(false, content="true")
+  }
+}

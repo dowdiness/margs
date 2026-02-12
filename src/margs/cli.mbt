@@ -4,7 +4,7 @@
 /// A command with its spec and handler.
 pub struct CliCommand {
   spec : SubcommandSpec
-  handler : (ParsedArgs) -> Unit raise ParseError
+  handler : (ParsedArgs) -> Unit raise Error
   commands : Array[CliCommand]
 }
 
@@ -18,7 +18,7 @@ pub struct Cli {
   options : Array[OptionSpec]
   positionals : Array[PositionalSpec]
   commands : Array[CliCommand]
-  handler : ((ParsedArgs) -> Unit raise ParseError)?
+  handler : ((ParsedArgs) -> Unit raise Error)?
 }
 
 ///|
@@ -46,7 +46,7 @@ pub fn command(
   name : String,
   description? : String = "",
   aliases? : Array[String] = [],
-  handler~ : (ParsedArgs) -> Unit raise ParseError,
+  handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
   { spec: subcommand(name, description~, aliases~), handler, commands: [] }
 }
@@ -55,7 +55,7 @@ pub fn command(
 /// Set or replace the root handler.
 pub fn Cli::set_handler(
   self : Cli,
-  handler~ : (ParsedArgs) -> Unit raise ParseError,
+  handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> Cli {
   { ..self, handler: Some(handler) }
 }
@@ -134,7 +134,7 @@ pub fn CliCommand::add_command(
 /// Set or replace a command handler.
 pub fn CliCommand::set_handler(
   self : CliCommand,
-  handler~ : (ParsedArgs) -> Unit raise ParseError,
+  handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
   { ..self, handler, }
 }
@@ -142,6 +142,22 @@ pub fn CliCommand::set_handler(
 ///|
 /// Convert the high-level CLI wrapper into a low-level parser.
 pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
+  fn run_handler(
+    handler : (ParsedArgs) -> Unit raise Error,
+    args : ParsedArgs,
+  ) -> Unit raise ParseError {
+    handler(args) catch {
+      MissingRequired(_) as err => raise err
+      InvalidValue(_) as err => raise err
+      UnknownOption(_) as err => raise err
+      UnknownCommand(_) as err => raise err
+      InvalidFormat(_) as err => raise err
+      HelpRequested(_) as err => raise err
+      HandlerError(_) as err => raise err
+      runtime => raise HandlerError(runtime.to_string())
+    }
+  }
+
   fn contains_alias(aliases : Array[String], name : String) -> Bool {
     for al in aliases {
       if al == name {
@@ -163,14 +179,14 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
     for cmd in commands {
       if cmd.spec.name == cmd_name || contains_alias(cmd.spec.aliases, cmd_name) {
         if index == args.command_path.length() - 1 {
-          (cmd.handler)(args)
+          run_handler(cmd.handler, args)
           return true
         }
         let child = dispatch(args, cmd.commands, index + 1)
         if child {
           return true
         }
-        (cmd.handler)(args)
+        run_handler(cmd.handler, args)
         return true
       }
     }
@@ -187,7 +203,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
       return ()
     }
     match self.handler {
-      Some(run) => run(args)
+      Some(run) => run_handler(run, args)
       None =>
         if self.commands.length() > 0 {
           raise HelpRequested("")
@@ -401,9 +417,9 @@ pub fn Cli::run(self : Cli) -> Unit {
   }
 
   let _ : Result[Unit, Unit] = Ok(self.parse(args)) catch {
-    err => {
+    err =>
       match err {
-        HelpRequested(_) =>
+        HelpRequested(_) => {
           match
             resolve_help_subcommand(
               args,
@@ -413,15 +429,21 @@ pub fn Cli::run(self : Cli) -> Unit {
             Some(spec) => println(generate_subcommand_help(spec))
             None => println(generate_help(self.to_parser()))
           }
+          let code = exit_code_for_error(err)
+          @sys.exit(code.code())
+          Ok(())
+        }
         MissingRequired(msg)
         | InvalidValue(msg)
         | UnknownOption(msg)
         | UnknownCommand(msg)
-        | InvalidFormat(msg) => println("Error: \{msg}")
+        | InvalidFormat(msg)
+        | HandlerError(msg) => {
+          println("Error: \{msg}")
+          let code = exit_code_for_error(err)
+          @sys.exit(code.code())
+          Ok(())
+        }
       }
-      let code = exit_code_for_error(err)
-      @sys.exit(code.code())
-      Ok(())
-    }
   }
 }
