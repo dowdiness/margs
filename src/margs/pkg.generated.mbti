@@ -95,7 +95,11 @@ pub struct Cli {
   positionals : Array[PositionalSpec]
   commands : Array[CliCommand]
   handler : ((ParsedArgs) -> Unit raise)?
+  before_hooks : Array[(ParsedArgs) -> Unit raise]
+  after_hooks : Array[(ParsedArgs) -> Unit raise]
 }
+pub fn Cli::add_after_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn Cli::add_before_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
 pub fn Cli::add_command(Self, CliCommand) -> Self
 pub fn Cli::add_example(Self, String, String) -> Self
 pub fn Cli::add_option(Self, OptionSpec) -> Self
@@ -110,7 +114,11 @@ pub struct CliCommand {
   spec : SubcommandSpec
   handler : (ParsedArgs) -> Unit raise
   commands : Array[CliCommand]
+  before_hooks : Array[(ParsedArgs) -> Unit raise]
+  after_hooks : Array[(ParsedArgs) -> Unit raise]
 }
+pub fn CliCommand::add_after_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
+pub fn CliCommand::add_before_hook(Self, hook~ : (ParsedArgs) -> Unit raise) -> Self
 pub fn CliCommand::add_command(Self, Self) -> Self
 pub fn CliCommand::add_option(Self, OptionSpec) -> Self
 pub fn CliCommand::add_positional(Self, PositionalSpec) -> Self

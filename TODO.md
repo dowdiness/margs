@@ -14,7 +14,7 @@
 - [x] Use `GeneralError` for runtime handler failure path.
 
 ## Phase 1 - Wrapper MVP + Extensibility
-- [ ] Define and implement middleware hooks (before/after handler).
+- [x] Define and implement middleware hooks (before/after handler).
 - [ ] Add test helpers for in-process CLI invocation and assertions.
 - [ ] Explore async-friendly handler support (even experimental).
 - [ ] Add tests for help/version rendering from wrapper API.

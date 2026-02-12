@@ -16,9 +16,10 @@ Implemented today:
 - Typo suggestions for unknown options/commands
 - Structured parse errors and exit-code mapping
 - High-level command wrapper API with global options and per-command handlers
+- Middleware hooks (`add_before_hook` / `add_after_hook`) on CLI and commands
 
 Not implemented yet:
-- Env/config binding, middleware hooks, shell completion, prompts, i18n, async handlers
+- Env/config binding, shell completion, prompts, i18n, async handlers
 
 ## Installation
 
@@ -59,7 +60,7 @@ fn main {
 
 ## Core API
 
-- Wrapper API: `@margs.create_cli`, `@margs.command`, `Cli::add_command`, `Cli::run`
+- Wrapper API: `@margs.create_cli`, `@margs.command`, `Cli::add_command`, `Cli::add_before_hook`, `Cli::add_after_hook`, `Cli::run`
 - Parser/builders: `@margs.parser`, `@margs.subcommand`
 - Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
@@ -103,7 +104,7 @@ Project layout:
 Planned direction (merged with what's already implemented):
 
 1. Done: wrapper API, alias/nested command dispatch, and example CLI.
-2. Phase 1: middleware/hooks, CLI test helpers, and async-friendly handlers.
+2. Phase 1: CLI test helpers and async-friendly handlers.
 3. Phase 2: env/config integration, structured output helpers, metadata versioning.
 4. Phase 3: shell completion, interactive prompts, i18n support.
 5. Phase 4: plugin system and code generation/scaffolding.

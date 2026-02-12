@@ -104,3 +104,61 @@ test "cli raises general error on handler failure" {
     Err(_) => inspect(false, content="true")
   }
 }
+
+///|
+test "global hooks run around command handler" {
+  let order : Array[String] = []
+  let cli = create_cli("demo")
+    .add_before_hook(hook=fn(_) { order.push("before") })
+    .add_after_hook(hook=fn(_) { order.push("after") })
+    .add_command(command("run", handler=fn(_) { order.push("handler") }))
+
+  cli.parse(["run"])
+  inspect(order[0], content="before")
+  inspect(order[1], content="handler")
+  inspect(order[2], content="after")
+}
+
+///|
+test "nested command hooks compose in expected order" {
+  let order : Array[String] = []
+  let cli = create_cli("demo")
+    .add_before_hook(hook=fn(_) { order.push("global_before") })
+    .add_after_hook(hook=fn(_) { order.push("global_after") })
+    .add_command(
+      command("project", handler=fn(_) { () })
+      .add_before_hook(hook=fn(_) { order.push("project_before") })
+      .add_after_hook(hook=fn(_) { order.push("project_after") })
+      .add_command(
+        command("deploy", handler=fn(_) { order.push("handler") })
+        .add_before_hook(hook=fn(_) { order.push("deploy_before") })
+        .add_after_hook(hook=fn(_) { order.push("deploy_after") }),
+      ),
+    )
+
+  cli.parse(["project", "deploy"])
+  inspect(order[0], content="global_before")
+  inspect(order[1], content="project_before")
+  inspect(order[2], content="deploy_before")
+  inspect(order[3], content="handler")
+  inspect(order[4], content="deploy_after")
+  inspect(order[5], content="project_after")
+  inspect(order[6], content="global_after")
+}
+
+///|
+test "hook failures convert to handler error" {
+  let cli = create_cli("demo")
+    .add_before_hook(hook=fn(_) raise { raise Failure::Failure("hook_fail") })
+    .add_command(command("run", handler=fn(_) { () }))
+
+  let result : Result[Unit, Error] = Ok(cli.parse(["run"])) catch {
+    e => Err(e)
+  }
+  match result {
+    Ok(_) => inspect(false, content="true")
+    Err(ParseError::HandlerError(msg)) =>
+      inspect(msg, content="Failure(\"hook_fail\")")
+    Err(_) => inspect(false, content="true")
+  }
+}
