@@ -68,6 +68,45 @@ fn main {
 - Help output: `@margs.generate_help`, `@margs.generate_subcommand_help`
 - Parsed accessors: `get_string`, `get_int`, `get_bool`, `get_string_list`, `get_positional`, `require_string`, `require_int`
 
+## Hook Semantics
+
+- `before_hooks` run before handler dispatch.
+- `after_hooks` are success-only: they run only if all `before_hooks` and the handler complete without raising.
+- `after_hooks` are not `finally` hooks; do cleanup in the handler (or a dedicated wrapper) if cleanup must always run.
+
+## Test Helper Semantics
+
+- `run_for_test` is for asserting parse/help/error behavior and exit-code mapping.
+- `CliTestResult.output` includes only framework-managed output (help/version/error text).
+- `run_for_test` does not capture handler `println`/stdout on successful execution.
+
+## Value Precedence
+
+When an option value is specified in multiple places, `margs` resolves it using this precedence order (highest to lowest):
+
+1. **Command-line arguments** (highest priority)
+   ```bash
+   mytool --port 3000
+   ```
+
+2. **Environment variables** (planned for Phase 2)
+   ```bash
+   MY_APP_PORT=3000 mytool
+   ```
+
+3. **Configuration file** (planned for Phase 2)
+   ```json
+   # ~/.mytoolrc.json
+   { "port": 3000 }
+   ```
+
+4. **Option default value** (lowest priority)
+   ```moonbit
+   int_option("port", default=8080)
+   ```
+
+**Current status:** Only CLI arguments and defaults are implemented. Environment variable and config file support are planned for Phase 2.
+
 ## Example App
 
 A complete demo CLI is in `src/example/main.mbt`.
