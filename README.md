@@ -18,10 +18,10 @@ Implemented today:
 - High-level command wrapper API with global options and per-command handlers
 - Middleware hooks (`add_before_hook` / `add_after_hook`) on CLI and commands
 - In-process test helper (`run_for_test`) for CLI assertions
-- Async-friendly skeleton API (`create_async_cli` / `async_command`) delegating to current sync runtime
+- Async CLI handlers and hooks (`create_async_cli` / `async_command`) with async dispatch
 
 Not implemented yet:
-- Env/config binding, shell completion, prompts, i18n, true async runtime handlers
+- Env/config binding, shell completion, prompts, i18n
 
 ## Installation
 
@@ -63,7 +63,7 @@ fn main {
 ## Core API
 
 - Wrapper API: `@margs.create_cli`, `@margs.command`, `Cli::add_command`, `Cli::add_before_hook`, `Cli::add_after_hook`, `Cli::run`, `Cli::run_for_test`
-- Async skeleton API: `@margs.create_async_cli`, `@margs.async_command`, `AsyncCli::run`, `AsyncCli::run_for_test`, `AsyncCli::run_async_args`
+- Async API: `@margs.create_async_cli`, `@margs.async_command`, `AsyncCli::parse`, `AsyncCli::run_for_test`, `AsyncCli::run_async_args`, `AsyncCli::run_async`, `AsyncCli::run`
 - Parser/builders: `@margs.parser`, `@margs.subcommand`
 - Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
@@ -107,7 +107,7 @@ Project layout:
 Planned direction (merged with what's already implemented):
 
 1. Done: wrapper API, alias/nested command dispatch, and example CLI.
-2. Phase 1: CLI test helpers and async-friendly handlers.
+2. Phase 1: CLI test helpers and async handlers.
 3. Phase 2: env/config integration, structured output helpers, metadata versioning.
 4. Phase 3: shell completion, interactive prompts, i18n support.
 5. Phase 4: plugin system and code generation/scaffolding.

@@ -12,12 +12,12 @@
 - [x] Add wrapper-focused tests for dispatch, nested subcommands, and global options.
 - [x] Define unified error boundary for parse errors and handler runtime errors.
 - [x] Use `GeneralError` for runtime handler failure path.
-- [x] Add AsyncCli skeleton API (`create_async_cli`, `async_command`) delegating to sync runtime.
+- [x] Add AsyncCli API (`create_async_cli`, `async_command`).
 
 ## Phase 1 - Wrapper MVP + Extensibility
 - [x] Define and implement middleware hooks (before/after handler).
 - [x] Add test helpers for in-process CLI invocation and assertions.
-- [ ] Integrate true async handlers/runtime into AsyncCli (current API is skeleton/delegation only).
+- [x] Integrate true async handlers/runtime into AsyncCli.
 - [x] Add tests for help/version rendering from wrapper API.
 - [x] Add tests for error-to-exit-code mapping (including `GeneralError`).
 
