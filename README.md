@@ -8,7 +8,7 @@ It includes:
 
 ## Current Status
 
-Implemented today:
+**Fully implemented (Phase 1 & 2):**
 - Typed options: `String`, `Int`, `Bool` flags, and repeated `String` lists
 - Positional arguments and nested subcommands
 - Auto-generated help text (main parser + subcommands)
@@ -18,9 +18,16 @@ Implemented today:
 - High-level command wrapper API with global options and per-command handlers
 - Middleware hooks (`add_before_hook` / `add_after_hook`) on CLI and commands
 - In-process test helper (`run_for_test`) for CLI assertions
+- Environment variable defaults with precedence chain
+- Config file support (JSON format)
+- Structured output helpers (logging, success/failure, key-value formatting)
+- JSON metadata generation for shell completion
 
-Not implemented yet:
-- Env/config binding, shell completion, prompts, i18n, async handlers
+**Not implemented yet (Phase 3+):**
+- Shell completion generation (bash/zsh/fish)
+- Interactive prompts for missing values
+- i18n support for help/error strings
+- Async handler support (blocked by Moon compiler)
 
 ## Installation
 
