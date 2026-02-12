@@ -16,7 +16,7 @@
 ## Phase 1 - Wrapper MVP + Extensibility
 - [x] Define and implement middleware hooks (before/after handler).
 - [x] Add test helpers for in-process CLI invocation and assertions.
-- [ ] Explore async-friendly handler support (even experimental).
+- [ ] Async handler support (blocked: Moon v0.8.1 compiler ICE - see `feature/async-cli` branch)
 - [x] Add tests for help/version rendering from wrapper API.
 - [x] Add tests for error-to-exit-code mapping (including `GeneralError`).
 
