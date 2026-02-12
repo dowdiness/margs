@@ -1,7 +1,0 @@
-{
-  "is-main": true,
-  "import": [
-    "dowdiness/margs/margs",
-    "moonbitlang/x/sys"
-  ]
-}

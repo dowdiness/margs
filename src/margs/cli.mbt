@@ -1,0 +1,425 @@
+// High-level CLI wrapper API built on top of Parser
+
+///|
+/// A command with its spec and handler.
+pub struct CliCommand {
+  spec : SubcommandSpec
+  handler : (ParsedArgs) -> Unit raise ParseError
+  commands : Array[CliCommand]
+}
+
+///|
+/// High-level CLI configuration and command registry.
+pub struct Cli {
+  name : String
+  description : String
+  version : String?
+  examples : Array[(String, String)]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  commands : Array[CliCommand]
+  handler : ((ParsedArgs) -> Unit raise ParseError)?
+}
+
+///|
+/// Create a new high-level CLI wrapper.
+pub fn create_cli(
+  name : String,
+  description? : String = "",
+  version? : String,
+) -> Cli {
+  {
+    name,
+    description,
+    version,
+    examples: [],
+    options: [],
+    positionals: [],
+    commands: [],
+    handler: None,
+  }
+}
+
+///|
+/// Create a command with a handler.
+pub fn command(
+  name : String,
+  description? : String = "",
+  aliases? : Array[String] = [],
+  handler~ : (ParsedArgs) -> Unit raise ParseError,
+) -> CliCommand {
+  { spec: subcommand(name, description~, aliases~), handler, commands: [] }
+}
+
+///|
+/// Set or replace the root handler.
+pub fn Cli::set_handler(
+  self : Cli,
+  handler~ : (ParsedArgs) -> Unit raise ParseError,
+) -> Cli {
+  { ..self, handler: Some(handler) }
+}
+
+///|
+/// Add a global option to the CLI.
+pub fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
+  { ..self, options: self.options + [opt] }
+}
+
+///|
+/// Add a root positional argument to the CLI.
+pub fn Cli::add_positional(self : Cli, pos : PositionalSpec) -> Cli {
+  { ..self, positionals: self.positionals + [pos] }
+}
+
+///|
+/// Add a usage example to the CLI help output.
+pub fn Cli::add_example(self : Cli, cmd : String, desc : String) -> Cli {
+  { ..self, examples: self.examples + [(cmd, desc)] }
+}
+
+///|
+/// Set CLI version information.
+pub fn Cli::with_version(self : Cli, version : String) -> Cli {
+  { ..self, version: Some(version) }
+}
+
+///|
+/// Add a command to the CLI.
+pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
+  { ..self, commands: self.commands + [cmd] }
+}
+
+///|
+/// Add an option to a command.
+pub fn CliCommand::add_option(
+  self : CliCommand,
+  opt : OptionSpec,
+) -> CliCommand {
+  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
+}
+
+///|
+/// Add a positional argument to a command.
+pub fn CliCommand::add_positional(
+  self : CliCommand,
+  pos : PositionalSpec,
+) -> CliCommand {
+  { ..self, spec: { ..self.spec, positionals: self.spec.positionals + [pos] } }
+}
+
+///|
+/// Add a nested subcommand spec to a command.
+pub fn CliCommand::add_subcommand(
+  self : CliCommand,
+  sub : SubcommandSpec,
+) -> CliCommand {
+  { ..self, spec: { ..self.spec, subcommands: self.spec.subcommands + [sub] } }
+}
+
+///|
+/// Add a nested command to a command.
+pub fn CliCommand::add_command(
+  self : CliCommand,
+  cmd : CliCommand,
+) -> CliCommand {
+  {
+    ..self,
+    spec: { ..self.spec, subcommands: self.spec.subcommands + [cmd.spec] },
+    commands: self.commands + [cmd],
+  }
+}
+
+///|
+/// Set or replace a command handler.
+pub fn CliCommand::set_handler(
+  self : CliCommand,
+  handler~ : (ParsedArgs) -> Unit raise ParseError,
+) -> CliCommand {
+  { ..self, handler, }
+}
+
+///|
+/// Convert the high-level CLI wrapper into a low-level parser.
+pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
+  fn contains_alias(aliases : Array[String], name : String) -> Bool {
+    for al in aliases {
+      if al == name {
+        return true
+      }
+    }
+    false
+  }
+
+  fn dispatch(
+    args : ParsedArgs,
+    commands : Array[CliCommand],
+    index : Int,
+  ) -> Bool raise ParseError {
+    if index >= args.command_path.length() {
+      return false
+    }
+    let cmd_name = args.command_path[index]
+    for cmd in commands {
+      if cmd.spec.name == cmd_name || contains_alias(cmd.spec.aliases, cmd_name) {
+        if index == args.command_path.length() - 1 {
+          (cmd.handler)(args)
+          return true
+        }
+        let child = dispatch(args, cmd.commands, index + 1)
+        if child {
+          return true
+        }
+        (cmd.handler)(args)
+        return true
+      }
+    }
+    false
+  }
+
+  let mut p : Parser[Unit] = parser(self.name, description=self.description, builder=args => {
+    if args.command_path.length() > 1 {
+      let handled = dispatch(args, self.commands, 1)
+      if not(handled) {
+        let cmd_name = args.command_path[1]
+        raise UnknownCommand("unknown command '\{cmd_name}'")
+      }
+      return ()
+    }
+    match self.handler {
+      Some(run) => run(args)
+      None =>
+        if self.commands.length() > 0 {
+          raise HelpRequested("")
+        } else {
+          ()
+        }
+    }
+  })
+
+  p = p.with_options(self.options)
+  for pos in self.positionals {
+    p = p.add_positional(pos)
+  }
+  for cmd in self.commands {
+    p = p.add_subcommand(cmd.spec)
+  }
+  match self.version {
+    Some(v) => p = p.with_version(v)
+    None => ()
+  }
+  for example in self.examples {
+    let (cmd, desc) = example
+    p = p.add_example(cmd, desc)
+  }
+  p
+}
+
+///|
+/// Parse explicit args and dispatch to the matching handler.
+pub fn Cli::parse(self : Cli, args : Array[String]) -> Unit raise ParseError {
+  self.to_parser().parse(args)
+}
+
+///|
+/// Return true if argument requests version output.
+fn is_version_arg(arg : String) -> Bool {
+  arg == "--version" || arg == "-V"
+}
+
+///|
+/// Check if option is a flag (does not consume a value).
+fn option_is_flag(opt : OptionSpec) -> Bool {
+  match opt {
+    BoolFlag(_) => true
+    _ => false
+  }
+}
+
+///|
+/// Find an option by long name (or key fallback).
+fn find_option_by_long_name(
+  options : Array[OptionSpec],
+  name : String,
+) -> OptionSpec? {
+  for opt in options {
+    match option_long(opt) {
+      Some(l) => if l == name { return Some(opt) }
+      None => if option_key(opt) == name { return Some(opt) }
+    }
+  }
+  None
+}
+
+///|
+/// Find an option by short name.
+fn find_option_by_short_name(
+  options : Array[OptionSpec],
+  name : Char,
+) -> OptionSpec? {
+  for opt in options {
+    match option_short(opt) {
+      Some(s) => if s == name { return Some(opt) }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+/// Return true if short option cluster consumes the next arg as a value.
+fn short_cluster_consumes_next_arg(
+  chars : StringView,
+  options : Array[OptionSpec],
+) -> Bool {
+  match chars {
+    [] => false
+    [ch, .. rest] =>
+      match find_option_by_short_name(options, ch) {
+        Some(opt) =>
+          if option_is_flag(opt) {
+            short_cluster_consumes_next_arg(rest, options)
+          } else {
+            rest.length() == 0
+          }
+        None => false
+      }
+  }
+}
+
+///|
+/// Find a subcommand spec by name or alias.
+fn find_subcommand_spec(
+  subcommands : Array[SubcommandSpec],
+  name : String,
+) -> SubcommandSpec? {
+  for sub in subcommands {
+    if sub.name == name {
+      return Some(sub)
+    }
+    for a in sub.aliases {
+      if a == name {
+        return Some(sub)
+      }
+    }
+  }
+  None
+}
+
+///|
+/// Build root subcommand specs from CLI command registrations.
+fn root_subcommand_specs(commands : Array[CliCommand]) -> Array[SubcommandSpec] {
+  let specs : Array[SubcommandSpec] = []
+  for cmd in commands {
+    specs.push(cmd.spec)
+  }
+  specs
+}
+
+///|
+/// Resolve the deepest subcommand targeted by `--help`/`-h`.
+/// This parser-aware scanner skips known option values and handles nested commands.
+fn resolve_help_subcommand(
+  args : Array[String],
+  root_options : Array[OptionSpec],
+  root_subcommands : Array[SubcommandSpec],
+) -> SubcommandSpec? {
+  let mut options = root_options
+  let mut subcommands = root_subcommands
+  let mut target : SubcommandSpec? = None
+  let pos = Ref::new(0)
+
+  while pos.val < args.length() {
+    let arg = args[pos.val]
+    if arg == "--help" || arg == "-h" || arg == "--" {
+      break
+    }
+    match arg.view() {
+      ['-', '-', .. rest] => {
+        let long_name = rest.to_string()
+        match split_at(long_name, '=') {
+          Some(_) => ()
+          None =>
+            match find_option_by_long_name(options, long_name) {
+              Some(opt) =>
+                if not(option_is_flag(opt)) && pos.val + 1 < args.length() {
+                  pos.val = pos.val + 1
+                }
+              None => ()
+            }
+        }
+      }
+      ['-', .. rest] =>
+        if short_cluster_consumes_next_arg(rest, options) && pos.val + 1 < args.length() {
+          pos.val = pos.val + 1
+        }
+      _ =>
+        match find_subcommand_spec(subcommands, arg) {
+          Some(sub) => {
+            target = Some(sub)
+            options = sub.options
+            subcommands = sub.subcommands
+          }
+          None => ()
+        }
+    }
+    pos.val = pos.val + 1
+  }
+  target
+}
+
+///|
+/// Run using process CLI args with automatic help/version/error handling.
+pub fn Cli::run(self : Cli) -> Unit {
+  let all_args = @sys.get_cli_args()
+  let args : Array[String] = []
+  for i = 1; i < all_args.length(); i = i + 1 {
+    args.push(all_args[i])
+  }
+
+  // If commands exist and no args were provided, show help.
+  if args.length() == 0 && self.commands.length() > 0 {
+    match self.handler {
+      Some(_) => ()
+      None => {
+        println(generate_help(self.to_parser()))
+        return
+      }
+    }
+  }
+
+  // Wrapper-level version handling.
+  if args.length() > 0 && is_version_arg(args[0]) {
+    match self.version {
+      Some(v) => {
+        println(v)
+        return
+      }
+      None => ()
+    }
+  }
+
+  let _ : Result[Unit, Unit] = Ok(self.parse(args)) catch {
+    err => {
+      match err {
+        HelpRequested(_) =>
+          match resolve_help_subcommand(
+            args,
+            self.options,
+            root_subcommand_specs(self.commands),
+          ) {
+            Some(spec) => println(generate_subcommand_help(spec))
+            None => println(generate_help(self.to_parser()))
+          }
+        MissingRequired(msg)
+        | InvalidValue(msg)
+        | UnknownOption(msg)
+        | UnknownCommand(msg)
+        | InvalidFormat(msg) => println("Error: \{msg}")
+      }
+      let code = exit_code_for_error(err)
+      @sys.exit(code.code())
+      Ok(())
+    }
+  }
+}

@@ -1,12 +1,12 @@
 # TODO
 
 ## Phase 1 - Core Wrapper API (P0)
-- [ ] Add high-level wrapper entry point (for example `create_cli(...)`).
-- [ ] Add command registration API with per-command handlers.
-- [ ] Support global options on wrapper-level CLI.
-- [ ] Implement wrapper dispatch on top of existing `Parser[T]` engine.
-- [ ] Add automatic help/version behavior at wrapper level.
-- [ ] Port `src/example/main.mbt` to wrapper API to validate ergonomics.
+- [x] Add high-level wrapper entry point (for example `create_cli(...)`).
+- [x] Add command registration API with per-command handlers.
+- [x] Support global options on wrapper-level CLI.
+- [x] Implement wrapper dispatch on top of existing `Parser[T]` engine.
+- [x] Add automatic help/version behavior at wrapper level.
+- [x] Port `src/example/main.mbt` to wrapper API to validate ergonomics.
 
 ## Phase 2 - Reliability and Migration (P1)
 - [ ] Define unified error boundary for parse errors and handler runtime errors.

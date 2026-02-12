@@ -1,8 +1,10 @@
 # margs
 
-`margs` is a type-safe command-line argument parser for MoonBit.
+`margs` is a type-safe CLI toolkit for MoonBit.
 
-It provides a small builder API for defining options, flags, positionals, and subcommands, then parsing CLI input into typed values.
+It includes:
+- A low-level parser/builder API (`parser`, `subcommand`, option constructors)
+- A high-level wrapper API (`create_cli`, `command`) with handler-based dispatch
 
 ## Current Status
 
@@ -13,9 +15,9 @@ Implemented today:
 - Built-in validators (`port_option`, `file_option`, `url_option`, `verbose_flag`, `quiet_flag`)
 - Typo suggestions for unknown options/commands
 - Structured parse errors and exit-code mapping
+- High-level command wrapper API with global options and per-command handlers
 
 Not implemented yet:
-- High-level command handler wrapper API (`create_cli`-style)
 - Env/config binding, middleware hooks, shell completion, prompts, i18n, async handlers
 
 ## Installation
@@ -40,46 +42,24 @@ moon install dowdiness/margs
 
 ```moonbit
 fn main {
-  let app = @margs.parser(
-    "hello",
-    description="Greeting CLI",
-    builder=fn(args) {
-      let name = match args.get_string("name") {
-        Some(v) => v
-        None => "World"
-      }
-      let count = match args.get_int("count") {
-        Some(v) => v
-        None => 1
-      }
-      for i = 0; i < count; i = i + 1 {
+  @margs.create_cli("hello", description="Greeting CLI", version="0.1.0")
+    .add_command(
+      @margs.command("greet", handler=fn(args) {
+        let name = match args.get_string("name") {
+          Some(v) => v
+          None => "World"
+        }
         println("Hello, \{name}!")
-      }
-    },
-  )
-  .with_version("0.1.0")
-  .add_option(@margs.str_option("name", short='n', long="name", default="World"))
-  .add_option(@margs.int_option("count", short='c', long="count", default=1))
-
-  let _ : Result[Unit, Unit] = Ok(app.run()) catch {
-    err => {
-      match err {
-        @margs.HelpRequested(_) => println(@margs.generate_help(app))
-        @margs.MissingRequired(msg)
-        | @margs.InvalidValue(msg)
-        | @margs.UnknownOption(msg)
-        | @margs.UnknownCommand(msg)
-        | @margs.InvalidFormat(msg) => println("Error: \{msg}")
-      }
-      @sys.exit(@margs.exit_code_for_error(err).code())
-      Ok(())
-    }
-  }
+      })
+      .add_option(@margs.str_option("name", short='n', long="name", default="World")),
+    )
+    .run()
 }
 ```
 
 ## Core API
 
+- Wrapper API: `@margs.create_cli`, `@margs.command`, `Cli::add_command`, `Cli::run`
 - Parser/builders: `@margs.parser`, `@margs.subcommand`
 - Option constructors: `@margs.str_option`, `@margs.int_option`, `@margs.flag`, `@margs.str_list_option`, `@margs.positional`
 - Validator helpers: `@margs.port_option`, `@margs.file_option`, `@margs.url_option`, `@margs.verbose_flag`, `@margs.quiet_flag`
@@ -122,7 +102,7 @@ Project layout:
 
 Planned direction from `docs/margs_cli_library_report.md`:
 
-1. Phase 1: high-level wrapper API for command handlers, automatic help/version flow, and migration docs.
+1. Phase 1 (in progress): wrapper API is implemented; migration docs and refinement are remaining.
 2. Phase 2: middleware/hooks, environment/config integration, shell completion, and CLI test helpers.
 3. Phase 3: interactive prompts, i18n support, and async-oriented command workflows.
 

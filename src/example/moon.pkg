@@ -1,0 +1,7 @@
+import {
+  "dowdiness/margs/margs",
+}
+
+options(
+  "is-main": true,
+)

@@ -2,6 +2,10 @@
 package "dowdiness/margs/margs"
 
 // Values
+pub fn command(String, description? : String, aliases? : Array[String], handler~ : (ParsedArgs) -> Unit raise ParseError) -> CliCommand
+
+pub fn create_cli(String, description? : String, version? : String) -> Cli
+
 pub fn exit_code_for_error(ParseError) -> ExitCode
 
 pub fn file_option(key? : String, short? : Char, long? : String, help? : String, required? : Bool) -> OptionSpec
@@ -80,6 +84,37 @@ pub struct BoolFlagDef {
   default : Bool
 }
 pub impl Show for BoolFlagDef
+
+pub struct Cli {
+  name : String
+  description : String
+  version : String?
+  examples : Array[(String, String)]
+  options : Array[OptionSpec]
+  positionals : Array[PositionalSpec]
+  commands : Array[CliCommand]
+  handler : ((ParsedArgs) -> Unit raise ParseError)?
+}
+pub fn Cli::add_command(Self, CliCommand) -> Self
+pub fn Cli::add_example(Self, String, String) -> Self
+pub fn Cli::add_option(Self, OptionSpec) -> Self
+pub fn Cli::add_positional(Self, PositionalSpec) -> Self
+pub fn Cli::parse(Self, Array[String]) -> Unit raise ParseError
+pub fn Cli::run(Self) -> Unit
+pub fn Cli::set_handler(Self, handler~ : (ParsedArgs) -> Unit raise ParseError) -> Self
+pub fn Cli::to_parser(Self) -> Parser[Unit]
+pub fn Cli::with_version(Self, String) -> Self
+
+pub struct CliCommand {
+  spec : SubcommandSpec
+  handler : (ParsedArgs) -> Unit raise ParseError
+  commands : Array[CliCommand]
+}
+pub fn CliCommand::add_command(Self, Self) -> Self
+pub fn CliCommand::add_option(Self, OptionSpec) -> Self
+pub fn CliCommand::add_positional(Self, PositionalSpec) -> Self
+pub fn CliCommand::add_subcommand(Self, SubcommandSpec) -> Self
+pub fn CliCommand::set_handler(Self, handler~ : (ParsedArgs) -> Unit raise ParseError) -> Self
 
 pub enum ExitCode {
   Success
