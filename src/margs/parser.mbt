@@ -1,23 +1,166 @@
 // Parsing engine for margs
 
 ///|
-/// Initialize default values from option specs
+/// Safely parse an integer from a string, returning None on failure.
+fn parse_int_safe(s : String) -> Int? {
+  // Try to parse as int, return None on failure
+  let mut result = 0
+  let mut negative = false
+  let mut i = 0
+
+  // Skip whitespace
+  while i < s.length() && (s[i] == ' ' || s[i] == '\t') {
+    i = i + 1
+  }
+
+  if i >= s.length() {
+    return None
+  }
+
+  // Check for sign
+  if s[i] == '-' {
+    negative = true
+    i = i + 1
+  } else if s[i] == '+' {
+    i = i + 1
+  }
+
+  if i >= s.length() {
+    return None
+  }
+
+  // Parse digits
+  let mut has_digit = false
+  while i < s.length() {
+    let ch = s[i]
+    if ch >= '0' && ch <= '9' {
+      has_digit = true
+      result = result * 10 + (ch.to_int() - '0'.to_int())
+      i = i + 1
+    } else {
+      break
+    }
+  }
+
+  if not(has_digit) {
+    return None
+  }
+
+  Some(if negative { -result } else { result })
+}
+
+///|
+/// Parse a boolean from an environment variable value.
+/// Accepts: "1", "true", "yes", "on" (case-insensitive) as true.
+/// Everything else is false.
+fn parse_bool_env(s : String) -> Bool {
+  // Simple case-insensitive comparison
+  s == "1" || s == "true" || s == "True" || s == "TRUE" ||
+  s == "yes" || s == "Yes" || s == "YES" ||
+  s == "on" || s == "On" || s == "ON"
+}
+
+///|
+/// Split an environment variable value by commas into a list.
+/// Trims whitespace from each element.
+fn split_env_list(s : String) -> Array[String] {
+  let parts : Array[String] = []
+  let mut current = ""
+  let mut i = 0
+
+  while i < s.length() {
+    let ch = s[i]
+    if ch == ',' {
+      let trimmed = current.trim().to_string()
+      if trimmed.length() > 0 {
+        parts.push(trimmed)
+      }
+      current = ""
+    } else {
+      current = current + ch.to_string()
+    }
+    i = i + 1
+  }
+
+  // Add last element
+  let trimmed = current.trim().to_string()
+  if trimmed.length() > 0 {
+    parts.push(trimmed)
+  }
+  parts
+}
+
+///|
+/// Initialize default values from option specs.
+/// Checks environment variables before falling back to defaults.
+/// Precedence: env var > default value
 fn init_defaults(options : Array[OptionSpec]) -> Map[String, ArgValue] {
   let values : Map[String, ArgValue] = {}
   for opt in options {
     match opt {
-      StringOption(d) =>
-        match d.default {
+      StringOption(d) => {
+        // Try env var first, then default
+        let value = match d.env {
+          Some(env_name) =>
+            match @sys.get_env_var(env_name) {
+              Some(env_val) => Some(env_val)
+              None => d.default
+            }
+          None => d.default
+        }
+        match value {
           Some(v) => values[d.key] = Str(v)
           None => ()
         }
-      IntOption(d) =>
-        match d.default {
+      }
+      IntOption(d) => {
+        // Try env var first, then default
+        let value = match d.env {
+          Some(env_name) =>
+            match @sys.get_env_var(env_name) {
+              Some(env_val) =>
+                // Parse env var as int
+                match parse_int_safe(env_val) {
+                  Some(n) => Some(n)
+                  None => d.default // Fall back to default if parse fails
+                }
+              None => d.default
+            }
+          None => d.default
+        }
+        match value {
           Some(v) => values[d.key] = Int(v)
           None => ()
         }
-      BoolFlag(d) => values[d.key] = Bool(d.default)
-      StringListOption(d) => values[d.key] = StrList([])
+      }
+      BoolFlag(d) => {
+        // Try env var first, then default
+        let value = match d.env {
+          Some(env_name) =>
+            match @sys.get_env_var(env_name) {
+              Some(env_val) =>
+                // Parse env var as bool (1/true/yes = true, anything else = false)
+                parse_bool_env(env_val)
+              None => d.default
+            }
+          None => d.default
+        }
+        values[d.key] = Bool(value)
+      }
+      StringListOption(d) => {
+        // Try env var first (comma-separated), then empty list
+        let value = match d.env {
+          Some(env_name) =>
+            match @sys.get_env_var(env_name) {
+              Some(env_val) =>
+                // Split by comma
+                split_env_list(env_val)
+              None => []
+            }
+          None => []
+        }
+        values[d.key] = StrList(value)
+      }
     }
   }
   values

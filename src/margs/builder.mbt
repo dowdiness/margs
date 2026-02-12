@@ -13,7 +13,17 @@ pub fn str_option(
   env? : String,
   validator? : (String) -> Bool,
 ) -> OptionSpec {
-  StringOption({ key, short, long, help, metavar, required, default, env, validator })
+  StringOption({
+    key,
+    short,
+    long,
+    help,
+    metavar,
+    required,
+    default,
+    env,
+    validator,
+  })
 }
 
 ///|
@@ -29,7 +39,17 @@ pub fn int_option(
   env? : String,
   validator? : (Int) -> Bool,
 ) -> OptionSpec {
-  IntOption({ key, short, long, help, metavar, required, default, env, validator })
+  IntOption({
+    key,
+    short,
+    long,
+    help,
+    metavar,
+    required,
+    default,
+    env,
+    validator,
+  })
 }
 
 ///|
