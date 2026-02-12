@@ -70,6 +70,10 @@ fn extract_strings(content : String) -> Array[String] {
     if ch == '"' {
       if in_string {
         // End of string - extract substring
+        // Note: Using substring() despite deprecation warning because the recommended
+        // slice syntax str[start:end] returns StringView, and StringView.to_string()
+        // requires error handling that complicates this internal function.
+        // TODO: Migrate to slice syntax when error handling patterns are clearer.
         let str_content = content.substring(start=start_pos, end=i)
         strings.push(str_content)
         in_string = false
