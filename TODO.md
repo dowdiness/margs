@@ -20,10 +20,10 @@
 - [x] Add tests for error-to-exit-code mapping (including `GeneralError`).
 
 ## Phase 2 - Real-world Usability
-- [ ] Add env-var backed defaults (opt-in per option).
+- [x] Add env-var backed defaults (opt-in per option).
 - [ ] Add config-file backed defaults (start with one simple format).
-- [ ] Document precedence: CLI args > env > config > default.
-- [ ] Add structured output helpers (JSON/logging).
+- [x] Document precedence: CLI args > env > config > default.
+- [x] Add structured output helpers (JSON/logging).
 - [ ] Version command metadata for stable completion output.
 
 ## Phase 3 - Developer Experience
