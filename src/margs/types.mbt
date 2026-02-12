@@ -163,5 +163,6 @@ pub struct Parser[T] {
   options : Array[OptionSpec]
   positionals : Array[PositionalSpec]
   subcommands : Array[SubcommandSpec]
+  config_file : String?
   builder : (ParsedArgs) -> T raise ParseError
 }

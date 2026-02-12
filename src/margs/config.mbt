@@ -14,9 +14,7 @@ pub fn load_config_file(path : String) -> Map[String, String]? {
 ///|
 /// Safely read a file, returning None if it doesn't exist or can't be read.
 fn read_file_safe(path : String) -> String? {
-  try {
-    Some(@fs.read_file_to_string(path))
-  } catch {
+  Some(@fs.read_file_to_string(path)) catch {
     _ => None
   }
 }
@@ -96,9 +94,9 @@ pub fn discover_config_file(app_name : String) -> String? {
     // Current directory
     ".\{app_name}rc",
     ".\{app_name}rc.json",
-    // Home directory (if available)
-    // Note: @sys.get_env_var("HOME") might not work on Windows
   ]
+  // Home directory (if available)
+  // Note: @sys.get_env_var("HOME") might not work on Windows
 
   for path in candidates {
     match read_file_safe(path) {

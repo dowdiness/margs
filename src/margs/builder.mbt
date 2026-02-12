@@ -103,6 +103,7 @@ pub fn[T] parser(
     options: [],
     positionals: [],
     subcommands: [],
+    config_file: None,
     builder,
   }
 }
@@ -144,6 +145,15 @@ pub fn[T] Parser::with_options(
 /// Add version information to the parser
 pub fn[T] Parser::with_version(self : Parser[T], v : String) -> Parser[T] {
   { ..self, version: Some(v) }
+}
+
+///|
+/// Set config file path for loading defaults
+pub fn[T] Parser::with_config_file(
+  self : Parser[T],
+  path : String,
+) -> Parser[T] {
+  { ..self, config_file: Some(path) }
 }
 
 ///|

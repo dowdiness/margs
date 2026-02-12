@@ -99,21 +99,42 @@ fn split_env_list(s : String) -> Array[String] {
 
 ///|
 /// Initialize default values from option specs.
-/// Checks environment variables before falling back to defaults.
-/// Precedence: env var > default value
-fn init_defaults(options : Array[OptionSpec]) -> Map[String, ArgValue] {
+/// Checks environment variables and config file before falling back to defaults.
+/// Precedence: env var > config file > default value
+fn init_defaults(
+  options : Array[OptionSpec],
+  config : Map[String, String]?,
+) -> Map[String, ArgValue] {
   let values : Map[String, ArgValue] = {}
   for opt in options {
     match opt {
       StringOption(d) => {
-        // Try env var first, then default
+        // Try env var first, then config, then default
         let value = match d.env {
           Some(env_name) =>
             match @sys.get_env_var(env_name) {
               Some(env_val) => Some(env_val)
+              None =>
+                // Try config file
+                match config {
+                  Some(cfg) =>
+                    match cfg.get(d.key) {
+                      Some(v) => Some(v)
+                      None => d.default
+                    }
+                  None => d.default
+                }
+            }
+          None =>
+            // No env var, try config
+            match config {
+              Some(cfg) =>
+                match cfg.get(d.key) {
+                  Some(v) => Some(v)
+                  None => d.default
+                }
               None => d.default
             }
-          None => d.default
         }
         match value {
           Some(v) => values[d.key] = Str(v)
@@ -121,7 +142,7 @@ fn init_defaults(options : Array[OptionSpec]) -> Map[String, ArgValue] {
         }
       }
       IntOption(d) => {
-        // Try env var first, then default
+        // Try env var first, then config, then default
         let value = match d.env {
           Some(env_name) =>
             match @sys.get_env_var(env_name) {
@@ -131,9 +152,35 @@ fn init_defaults(options : Array[OptionSpec]) -> Map[String, ArgValue] {
                   Some(n) => Some(n)
                   None => d.default // Fall back to default if parse fails
                 }
+              None =>
+                // Try config file
+                match config {
+                  Some(cfg) =>
+                    match cfg.get(d.key) {
+                      Some(cfg_val) =>
+                        match parse_int_safe(cfg_val) {
+                          Some(n) => Some(n)
+                          None => d.default
+                        }
+                      None => d.default
+                    }
+                  None => d.default
+                }
+            }
+          None =>
+            // No env var, try config
+            match config {
+              Some(cfg) =>
+                match cfg.get(d.key) {
+                  Some(cfg_val) =>
+                    match parse_int_safe(cfg_val) {
+                      Some(n) => Some(n)
+                      None => d.default
+                    }
+                  None => d.default
+                }
               None => d.default
             }
-          None => d.default
         }
         match value {
           Some(v) => values[d.key] = Int(v)
@@ -141,30 +188,66 @@ fn init_defaults(options : Array[OptionSpec]) -> Map[String, ArgValue] {
         }
       }
       BoolFlag(d) => {
-        // Try env var first, then default
+        // Try env var first, then config, then default
         let value = match d.env {
           Some(env_name) =>
             match @sys.get_env_var(env_name) {
               Some(env_val) =>
-                // Parse env var as bool (1/true/yes = true, anything else = false)
+                // Parse env var as bool
                 parse_bool_env(env_val)
+              None =>
+                // Try config file
+                match config {
+                  Some(cfg) =>
+                    match cfg.get(d.key) {
+                      Some(cfg_val) => parse_bool_env(cfg_val)
+                      None => d.default
+                    }
+                  None => d.default
+                }
+            }
+          None =>
+            // No env var, try config
+            match config {
+              Some(cfg) =>
+                match cfg.get(d.key) {
+                  Some(cfg_val) => parse_bool_env(cfg_val)
+                  None => d.default
+                }
               None => d.default
             }
-          None => d.default
         }
         values[d.key] = Bool(value)
       }
       StringListOption(d) => {
-        // Try env var first (comma-separated), then empty list
+        // Try env var first (comma-separated), then config, then empty list
         let value = match d.env {
           Some(env_name) =>
             match @sys.get_env_var(env_name) {
               Some(env_val) =>
                 // Split by comma
                 split_env_list(env_val)
+              None =>
+                // Try config file
+                match config {
+                  Some(cfg) =>
+                    match cfg.get(d.key) {
+                      Some(cfg_val) => split_env_list(cfg_val)
+                      None => []
+                    }
+                  None => []
+                }
+            }
+          None =>
+            // No env var, try config
+            match config {
+              Some(cfg) =>
+                match cfg.get(d.key) {
+                  Some(cfg_val) => split_env_list(cfg_val)
+                  None => []
+                }
               None => []
             }
-          None => []
         }
         values[d.key] = StrList(value)
       }
@@ -436,8 +519,9 @@ fn parse_args(
   subcommands : Array[SubcommandSpec],
   args : Array[String],
   command_path : Array[String],
+  config : Map[String, String]?,
 ) -> ParsedArgs raise ParseError {
-  let values = init_defaults(options)
+  let values = init_defaults(options, config)
   let pos_values : Array[String] = []
   let pos = Ref::new(0)
   let double_dash = Ref::new(false)
@@ -481,6 +565,7 @@ fn parse_args(
                   sub.subcommands,
                   sub_args,
                   sub_path,
+                  config,
                 )
                 // Merge parent option values into subcommand result (preserve child precedence)
                 for entry in values {
@@ -529,12 +614,19 @@ pub fn[T] Parser::parse(
   self : Parser[T],
   args : Array[String],
 ) -> T raise ParseError {
+  // Load config file if specified
+  let config = match self.config_file {
+    Some(path) => load_config_file(path)
+    None => None
+  }
+
   let parsed = parse_args(
     self.options,
     self.positionals,
     self.subcommands,
     args,
     [self.name],
+    config,
   )
   (self.builder)(parsed)
 }
