@@ -16,7 +16,6 @@
 ## Phase 1 - Wrapper MVP + Extensibility
 - [x] Define and implement middleware hooks (before/after handler).
 - [x] Add test helpers for in-process CLI invocation and assertions.
-- [ ] Async handler support (blocked: Moon v0.8.1 compiler ICE - see `feature/async-cli` branch)
 - [x] Add tests for help/version rendering from wrapper API.
 - [x] Add tests for error-to-exit-code mapping (including `GeneralError`).
 
@@ -35,6 +34,13 @@
 ## Phase 4 - Advanced
 - [ ] Add plugin system.
 - [ ] Add code generation/scaffolding tools.
+
+## Future (Blocked by External Dependencies)
+- [ ] **Async handler support** - Awaiting Moon compiler fix for test mode ICE
+  - Implementation complete in `feature/async-cli` branch
+  - Blocked by: Moon v0.8.1 compiler ICE `Invalid_argument("Moonc.Basic_lst.fold_right2")`
+  - When available: Merge `feature/async-cli` to main
+  - See: `ASYNC_BRANCH.md` for details
 
 ## Release Readiness
 - [ ] Regenerate and commit `pkg.generated.mbti` when public API changes.
