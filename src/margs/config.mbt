@@ -74,7 +74,7 @@ fn extract_strings(content : String) -> Array[String] {
           let str_content = content[start_pos:i].to_string()
           strings.push(str_content)
         } catch {
-          _ => ()  // Skip invalid string slices (shouldn't happen with valid indices)
+          _ => () // Skip invalid string slices (shouldn't happen with valid indices)
         }
         in_string = false
       } else {
