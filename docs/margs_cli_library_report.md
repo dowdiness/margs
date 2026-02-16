@@ -80,7 +80,7 @@ This API hides low‑level parser mechanics.  Developers focus on describing com
 - **`apply_option_value`** – applies type conversions and validators, storing results in the `ParsedArgs` map or raising `InvalidValue` errors when conversion fails.
 - **Typed accessors** – methods on `ParsedArgs` (e.g. `get_string`, `get_int`, `get_bool`, `get_string_list`) safely retrieve values with optional `require_*` variants that throw if the value is missing【477455542317388†L170-L207】.
 
-Error handling is robust: parsing functions return `ParseError` variants (e.g. `UnknownOption`, `MissingRequired`, `InvalidValue`, `InvalidFormat`) which map to exit codes via `exit_codes.mbt`.  Help and version requests are handled by exceptions (`HelpRequested`, `VersionRequested`) that short‑circuit normal execution.
+Error handling is robust: parsing functions return `ParseError` variants (`UnknownOption`, `UnknownCommand`, `MissingRequired`, `InvalidValue`, `InvalidFormat`, `HelpRequested`, `VersionRequested`, `HandlerError`) which map to exit codes via `exit_codes.mbt`.  Help and version requests are handled by exceptions (`HelpRequested`, `VersionRequested`) that short‑circuit normal execution.
 
 ## 5. Proposed Enhancements and Design Ideas
 
