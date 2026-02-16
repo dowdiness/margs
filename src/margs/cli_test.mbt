@@ -191,6 +191,15 @@ test "run_for_test returns version output" {
 }
 
 ///|
+test "run_for_test returns version output for short flag" {
+  let cli = create_cli("demo", version="2.5.1")
+  let result = cli.run_for_test(["-V"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.output, content="Some(\"2.5.1\")")
+  inspect(result.error is None, content="true")
+}
+
+///|
 test "run_for_test returns command help with success exit" {
   let cli = create_cli("demo").add_command(
     command("deploy", description="Deploy app", handler=fn(_) { () }),

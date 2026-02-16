@@ -54,7 +54,7 @@ fn format_option_help(opt : OptionSpec, col_width : Int) -> String {
 
 ///|
 /// Compute the maximum flag column width
-fn max_flag_width(options : Array[OptionSpec]) -> Int {
+fn max_flag_width(options : Array[OptionSpec], include_version : Bool) -> Int {
   let mut max = 0
   for opt in options {
     let w = format_flags(opt).length()
@@ -66,6 +66,12 @@ fn max_flag_width(options : Array[OptionSpec]) -> Int {
   let help_width = "-h, --help".length()
   if help_width > max {
     max = help_width
+  }
+  if include_version {
+    let version_width = "-V, --version".length()
+    if version_width > max {
+      max = version_width
+    }
   }
   max
 }
@@ -169,7 +175,7 @@ pub fn[T] generate_help(p : Parser[T]) -> String {
   }
   // Options
   buf.write_string("\nOptions:\n")
-  let col_width = max_flag_width(p.options)
+  let col_width = max_flag_width(p.options, p.version is Some(_))
   for opt in p.options {
     buf.write_string(format_option_help(opt, col_width))
     buf.write_string("\n")
@@ -177,12 +183,19 @@ pub fn[T] generate_help(p : Parser[T]) -> String {
   // Help option is always present
   let help_padded = pad_right("-h, --help", col_width)
   buf.write_string("  \{help_padded}  Print help\n")
+  if p.version is Some(_) {
+    let version_padded = pad_right("-V, --version", col_width)
+    buf.write_string("  \{version_padded}  Print version\n")
+  }
   buf.to_string()
 }
 
 ///|
 /// Generate help text for a subcommand spec
-pub fn generate_subcommand_help(sub : SubcommandSpec) -> String {
+pub fn generate_subcommand_help(
+  sub : SubcommandSpec,
+  include_version? : Bool = false,
+) -> String {
   let buf = StringBuilder::new()
   // Description
   if sub.description.length() > 0 {
@@ -232,12 +245,16 @@ pub fn generate_subcommand_help(sub : SubcommandSpec) -> String {
   }
   // Options
   buf.write_string("\nOptions:\n")
-  let col_width = max_flag_width(sub.options)
+  let col_width = max_flag_width(sub.options, include_version)
   for opt in sub.options {
     buf.write_string(format_option_help(opt, col_width))
     buf.write_string("\n")
   }
   let help_padded = pad_right("-h, --help", col_width)
   buf.write_string("  \{help_padded}  Print help\n")
+  if include_version {
+    let version_padded = pad_right("-V, --version", col_width)
+    buf.write_string("  \{version_padded}  Print version\n")
+  }
   buf.to_string()
 }

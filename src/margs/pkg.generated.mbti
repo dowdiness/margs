@@ -22,7 +22,7 @@ pub fn[T] generate_help(Parser[T]) -> String
 
 pub fn[T] generate_metadata(Parser[T]) -> String
 
-pub fn generate_subcommand_help(SubcommandSpec) -> String
+pub fn generate_subcommand_help(SubcommandSpec, include_version? : Bool) -> String
 
 pub fn int_option(String, short? : Char, long? : String, help? : String, metavar? : String, required? : Bool, default? : Int, env? : String, validator? : (Int) -> Bool) -> OptionSpec
 
@@ -90,6 +90,7 @@ pub suberror ParseError {
   UnknownCommand(String)
   InvalidFormat(String)
   HelpRequested(String)
+  VersionRequested(String)
   HandlerError(String)
 }
 

@@ -520,6 +520,7 @@ fn parse_args(
   args : Array[String],
   command_path : Array[String],
   config : Map[String, String]?,
+  version : String?,
 ) -> ParsedArgs raise ParseError {
   let values = init_defaults(options, config)
   let pos_values : Array[String] = []
@@ -534,6 +535,20 @@ fn parse_args(
       double_dash.val = true
     } else if arg == "--help" || arg == "-h" {
       raise HelpRequested("")
+    } else if arg == "--version" || arg == "-V" {
+      match version {
+        Some(v) => raise VersionRequested(v)
+        None =>
+          match arg.view() {
+            ['-', '-', .. rest] => {
+              let name = rest.to_string()
+              parse_long_option(name, options, values, args, pos)
+            }
+            ['-', .. rest] =>
+              parse_short_option(rest, options, values, args, pos)
+            _ => ()
+          }
+      }
     } else {
       match arg.view() {
         ['-', '-', .. rest] => {
@@ -566,6 +581,7 @@ fn parse_args(
                   sub_args,
                   sub_path,
                   config,
+                  version,
                 )
                 // Merge parent option values into subcommand result (preserve child precedence)
                 for entry in values {
@@ -627,6 +643,7 @@ pub fn[T] Parser::parse(
     args,
     [self.name],
     config,
+    self.version,
   )
   (self.builder)(parsed)
 }

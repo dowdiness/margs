@@ -7,6 +7,7 @@ test "simple parser help output" {
       description="A sample application",
       builder=fn(args) { args },
     )
+    |> Parser::with_version("1.0.0")
     |> Parser::with_options([
       str_option("output", short='o', long="output", help="Output file"),
       flag("verbose", short='v', long="verbose", help="Enable verbose output"),
@@ -27,6 +28,8 @@ test "simple parser help output" {
   // Check built-in help option
   inspect(help.contains("-h, --help"), content="true")
   inspect(help.contains("Print help"), content="true")
+  inspect(help.contains("-V, --version"), content="true")
+  inspect(help.contains("Print version"), content="true")
 }
 
 ///|
@@ -118,6 +121,14 @@ test "subcommand help generation" {
 }
 
 ///|
+test "subcommand help includes version when enabled" {
+  let sub = subcommand("deploy", description="Deploy the app")
+  let help = generate_subcommand_help(sub, include_version=true)
+  inspect(help.contains("-V, --version"), content="true")
+  inspect(help.contains("Print version"), content="true")
+}
+
+///|
 test "verbose_flag helper" {
   let opt = verbose_flag()
   inspect(option_key(opt), content="verbose")
@@ -176,6 +187,7 @@ test "help excludes version when not set" {
   })
   let help = generate_help(p)
   inspect(help.contains("Version:"), content="false")
+  inspect(help.contains("--version"), content="false")
 }
 
 ///|

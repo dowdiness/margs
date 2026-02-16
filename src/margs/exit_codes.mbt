@@ -35,6 +35,7 @@ pub fn ExitCode::code(self : ExitCode) -> Int {
 pub fn exit_code_for_error(err : ParseError) -> ExitCode {
   match err {
     HelpRequested(_) => Success
+    VersionRequested(_) => Success
     UnknownOption(_) | UnknownCommand(_) | MissingRequired(_) => MisusedCommand
     InvalidValue(_) | InvalidFormat(_) => InvalidInput
     HandlerError(_) => GeneralError

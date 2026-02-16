@@ -210,6 +210,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
       UnknownCommand(_) as err => raise err
       InvalidFormat(_) as err => raise err
       HelpRequested(_) as err => raise err
+      VersionRequested(_) as err => raise err
       HandlerError(_) as err => raise err
       runtime => raise HandlerError(runtime.to_string())
     }
@@ -371,7 +372,11 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
               self.options,
               root_subcommand_specs(self.commands),
             ) {
-            Some(spec) => generate_subcommand_help(spec)
+            Some(spec) =>
+              generate_subcommand_help(
+                spec,
+                include_version=self.version is Some(_),
+              )
             None => generate_help(self.to_parser())
           }
           {
@@ -380,6 +385,12 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
             error: Some(err),
           }
         }
+        VersionRequested(text) =>
+          {
+            exit_code: exit_code_for_error(err),
+            output: Some(text),
+            error: None,
+          }
         MissingRequired(msg)
         | InvalidValue(msg)
         | UnknownOption(msg)
