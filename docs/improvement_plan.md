@@ -20,7 +20,7 @@ Evolve `margs` from a low-level parser into a higher-level CLI construction libr
 1. Add a new high-level CLI wrapper layer (suggested new file: `src/margs/cli.mbt`).
 2. Support command registration with handler functions.
 3. Keep `Parser[T]` as the engine under the hood.
-4. Add automatic `--help` and `--version` handling at wrapper level.
+4. Add automatic `--help` and `--version` handling at wrapper level. (done)
 
 ### Proposed API shape
 - `create_cli(name, description?, version?)`
@@ -33,7 +33,7 @@ Evolve `margs` from a low-level parser into a higher-level CLI construction libr
 - `src/margs/types.mbt`: add wrapper structs/types for CLI and command handler registration.
 - `src/margs/builder.mbt`: helper constructors for wrapper composition.
 - `src/margs/parser.mbt`: minimal changes only if required for wrapper integration.
-- `src/margs/help_test.mbt` and new wrapper tests: validate help/version/dispatch.
+- `src/margs/help_test.mbt` and new wrapper tests: validate help/version/dispatch. (done)
 
 ### Exit gate
 - Wrapper can reimplement current `src/example/main.mbt` behavior with less boilerplate.
@@ -60,7 +60,7 @@ Evolve `margs` from a low-level parser into a higher-level CLI construction libr
 4. Test helpers for invoking CLI commands in-process.
 
 ### Exit gate
-- Documented precedence order: CLI args > env > config > default.
+- Documented precedence order: CLI args > env > config > default. (done)
 
 ## Phase 4: Extended Usability (Priority: P3)
 ### Candidate features
@@ -72,12 +72,12 @@ Evolve `margs` from a low-level parser into a higher-level CLI construction libr
 ## Testing Plan
 - Keep black-box tests in `*_test.mbt` next to implementation.
 - Add dedicated wrapper tests:
-  - command dispatch correctness
-  - nested subcommand dispatch
-  - global options inheritance
-  - help/version rendering
-  - unknown option/command suggestion quality
-  - exit code assertions
+- command dispatch correctness (done)
+- nested subcommand dispatch (done)
+- global options inheritance (done)
+- help/version rendering (done)
+- unknown option/command suggestion quality (done)
+- exit code assertions (done)
 - Maintain a runnable integration sample in `src/example/main.mbt` using the new wrapper.
 
 ## Risks and Mitigations
@@ -86,9 +86,9 @@ Evolve `margs` from a low-level parser into a higher-level CLI construction libr
 - **Risk: unclear precedence with config/env**. Mitigation: codify precedence in docs + tests before implementation.
 
 ## Immediate Next Steps (Execution Order)
-1. Create wrapper type definitions and method skeletons.
-2. Implement command registration and dispatch.
-3. Port `src/example/main.mbt` to wrapper API.
-4. Add tests for wrapper help/version/dispatch.
-5. Use `GeneralError` for handler failures and test exit-code mapping.
+1. Create wrapper type definitions and method skeletons. (done)
+2. Implement command registration and dispatch. (done)
+3. Port `src/example/main.mbt` to wrapper API. (done)
+4. Add tests for wrapper help/version/dispatch. (done)
+5. Use `GeneralError` for handler failures and test exit-code mapping. (done)
 6. Publish migration guide and update README examples.

@@ -12,6 +12,7 @@ It includes:
 - Typed options: `String`, `Int`, `Bool` flags, and repeated `String` lists
 - Positional arguments and nested subcommands
 - Auto-generated help text (main parser + subcommands)
+- Built-in `--version`/`-V` handling when version is configured
 - Built-in validators (`port_option`, `file_option`, `url_option`, `verbose_flag`, `quiet_flag`)
 - Typo suggestions for unknown options/commands
 - Structured parse errors and exit-code mapping
@@ -51,7 +52,7 @@ moon install dowdiness/margs
 
 ```moonbit
 fn main {
-  @margs.create_cli("hello", description="Greeting CLI", version="0.1.0")
+  @margs.create_cli("hello", description="Greeting CLI", version="0.1.1")
     .add_command(
       @margs.command("greet", handler=fn(args) {
         let name = match args.get_string("name") {
@@ -98,12 +99,12 @@ When an option value is specified in multiple places, `margs` resolves it using 
    mytool --port 3000
    ```
 
-2. **Environment variables** (planned for Phase 2)
+2. **Environment variables**
    ```bash
    MY_APP_PORT=3000 mytool
    ```
 
-3. **Configuration file** (planned for Phase 2)
+3. **Configuration file**
    ```json
    # ~/.mytoolrc.json
    { "port": 3000 }
@@ -212,7 +213,7 @@ let cli = create_cli("myapp", version="1.0.0")
       .add_option(flag("daemon", short='d', help="Run as daemon"))
   )
 
-let metadata = generate_metadata(cli.parser)
+let metadata = generate_metadata(cli.to_parser())
 println(metadata)
 ```
 
