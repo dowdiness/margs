@@ -129,6 +129,49 @@ test "invalid integer raises error" {
   inspect(result is Err(_), content="true")
 }
 
+// ===== Double option parsing =====
+
+///|
+test "parse double option" {
+  let p = make_test_parser(options=[double_option("threshold", long="threshold")])
+  let result = p.parse(["--threshold", "1.25"])
+  inspect(result.get_double("threshold"), content="Some(1.25)")
+}
+
+///|
+test "parse double option from integer string" {
+  let p = make_test_parser(options=[double_option("ratio", long="ratio")])
+  let result = p.parse(["--ratio", "2"])
+  inspect(result.get_double("ratio"), content="Some(2)")
+}
+
+///|
+test "invalid double raises error" {
+  let p = make_test_parser(options=[double_option("ratio", long="ratio")])
+  let result : Result[ParsedArgs, Error] = Ok(p.parse(["--ratio", "NaN"])) catch {
+    e => Err(e)
+  }
+  inspect(result is Err(_), content="true")
+}
+
+///|
+test "invalid double rejects infinity" {
+  let p = make_test_parser(options=[double_option("ratio", long="ratio")])
+  let result : Result[ParsedArgs, Error] = Ok(p.parse(["--ratio", "Infinity"])) catch {
+    e => Err(e)
+  }
+  inspect(result is Err(_), content="true")
+}
+
+///|
+test "invalid double rejects non-numeric" {
+  let p = make_test_parser(options=[double_option("ratio", long="ratio")])
+  let result : Result[ParsedArgs, Error] = Ok(p.parse(["--ratio", "abc"])) catch {
+    e => Err(e)
+  }
+  inspect(result is Err(_), content="true")
+}
+
 // ===== Default values =====
 
 ///|
