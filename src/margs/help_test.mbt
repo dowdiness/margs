@@ -86,8 +86,18 @@ test "help with metavar" {
         metavar="PORT",
       ),
     )
+    |> Parser::add_option(
+      double_option(
+        "ratio",
+        short='r',
+        long="ratio",
+        help="Ratio",
+        metavar="NUM",
+      ),
+    )
   let help = generate_help(p)
   inspect(help.contains("<PORT>"), content="true")
+  inspect(help.contains("--ratio <NUM>"), content="true")
 }
 
 ///|

@@ -90,6 +90,23 @@ pub fn parse_int(s : String) -> Int? {
 }
 
 ///|
+/// Parse a double from a string. Returns None if the string is not a valid number.
+pub fn parse_double(s : String) -> Double? {
+  let trimmed = s.trim().to_string()
+  if trimmed.length() == 0 {
+    return None
+  }
+  let value = @strconv.parse_double(trimmed) catch { _ => return None }
+  if value.is_nan() ||
+    value == @double.infinity ||
+    value == @double.neg_infinity {
+    None
+  } else {
+    Some(value)
+  }
+}
+
+///|
 /// Pad a string to the right with spaces to reach the desired width.
 pub fn pad_right(s : String, width : Int) -> String {
   let len = s.length()
@@ -111,6 +128,7 @@ pub fn option_key(opt : OptionSpec) -> String {
   match opt {
     StringOption(d) => d.key
     IntOption(d) => d.key
+    DoubleOption(d) => d.key
     BoolFlag(d) => d.key
     StringListOption(d) => d.key
   }
@@ -122,6 +140,7 @@ pub fn option_short(opt : OptionSpec) -> Char? {
   match opt {
     StringOption(d) => d.short
     IntOption(d) => d.short
+    DoubleOption(d) => d.short
     BoolFlag(d) => d.short
     StringListOption(d) => d.short
   }
@@ -133,6 +152,7 @@ pub fn option_long(opt : OptionSpec) -> String? {
   match opt {
     StringOption(d) => d.long
     IntOption(d) => d.long
+    DoubleOption(d) => d.long
     BoolFlag(d) => d.long
     StringListOption(d) => d.long
   }
@@ -144,6 +164,7 @@ pub fn option_help(opt : OptionSpec) -> String {
   match opt {
     StringOption(d) => d.help
     IntOption(d) => d.help
+    DoubleOption(d) => d.help
     BoolFlag(d) => d.help
     StringListOption(d) => d.help
   }
@@ -155,6 +176,7 @@ pub fn option_required(opt : OptionSpec) -> Bool {
   match opt {
     StringOption(d) => d.required
     IntOption(d) => d.required
+    DoubleOption(d) => d.required
     BoolFlag(_) => false
     StringListOption(_) => false
   }
@@ -195,6 +217,28 @@ test "parse_int with mixed content" {
 ///|
 test "parse_int with lone minus" {
   inspect(parse_int("-"), content="None")
+}
+
+// ===== parse_double Helper Tests =====
+
+///|
+test "parse_double with valid value" {
+  inspect(parse_double("3.5"), content="Some(3.5)")
+}
+
+///|
+test "parse_double rejects NaN" {
+  inspect(parse_double("NaN"), content="None")
+}
+
+///|
+test "parse_double rejects infinity" {
+  inspect(parse_double("Infinity"), content="None")
+}
+
+///|
+test "parse_double with invalid string" {
+  inspect(parse_double("abc"), content="None")
 }
 
 // ===== pad_right Helper Tests =====

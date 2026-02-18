@@ -133,8 +133,19 @@ test "invalid integer raises error" {
 
 ///|
 test "parse double option" {
-  let p = make_test_parser(options=[double_option("threshold", long="threshold")])
+  let p = make_test_parser(options=[
+    double_option("threshold", long="threshold"),
+  ])
   let result = p.parse(["--threshold", "1.25"])
+  inspect(result.get_double("threshold"), content="Some(1.25)")
+}
+
+///|
+test "parse double option with = separator" {
+  let p = make_test_parser(options=[
+    double_option("threshold", long="threshold"),
+  ])
+  let result = p.parse(["--threshold=1.25"])
   inspect(result.get_double("threshold"), content="Some(1.25)")
 }
 
