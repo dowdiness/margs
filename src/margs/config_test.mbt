@@ -37,6 +37,15 @@ test "parse JSON config with numeric values" {
 }
 
 ///|
+test "parse JSON config preserves large integral numbers" {
+  let json = "{\"big\": 10000000000}"
+  match parse_json_config(json) {
+    Some(config) => inspect(config.get("big"), content="Some(\"10000000000\")")
+    None => inspect(false, content="true")
+  }
+}
+
+///|
 test "parse empty JSON returns None" {
   let json = "{}"
   match parse_json_config(json) {
