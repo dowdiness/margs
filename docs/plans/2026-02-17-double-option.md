@@ -4,11 +4,13 @@
 
 **Goal:** Add a built-in `double_option` with safe parsing, env/config support, and tests that reject `NaN`/`Infinity`.
 
-**Architecture:** Introduce a `DoubleOption`/`DoubleOptionDef` path parallel to `IntOption`, backed by `parse_double_safe` and `ArgValue::Double`. Extend help, metadata, and accessors to include the new type, and update JSON config parsing to produce safe number strings.
+**Architecture:** Introduce a `DoubleOption`/`DoubleOptionDef` path parallel to `IntOption`, backed by `parse_double` and `ArgValue::Double`. Extend help, metadata, and accessors to include the new type, and update JSON config parsing to produce safe number strings.
 
 **Tech Stack:** MoonBit, margs core modules, MoonBit JSON core package.
 
 ---
+
+## Tasks
 
 ### Task 1: Add failing parser tests for doubles
 
@@ -174,13 +176,13 @@ Expected: FAIL due to missing `double_option` and help formatting.
 
 ```moonbit
 // src/margs/utils.mbt
-pub fn parse_double_safe(s : String) -> Double? {
+pub fn parse_double(s : String) -> Double? {
   let trimmed = s.trim().to_string()
   if trimmed.length() == 0 {
     return None
   }
-  let value = Double::from_string(trimmed) catch { _ => return None }
-  if value.is_nan() || value.is_infinite() {
+  let value = @strconv.parse_double(trimmed) catch { _ => return None }
+  if value.is_nan() || value == @double.infinity || value == @double.neg_infinity {
     None
   } else {
     Some(value)
@@ -220,7 +222,7 @@ pub fn double_option(
 fn apply_option_value(opt : OptionSpec, raw_value : String, values : Map[String, ArgValue]) -> Unit raise ParseError {
   match opt {
     DoubleOption(d) =>
-      match parse_double_safe(raw_value) {
+      match parse_double(raw_value) {
         Some(n) => {
           match d.validator {
             Some(validate) => if not(validate(n)) {
@@ -318,38 +320,50 @@ Expected: FAIL for missing double env/config support.
 // src/margs/parser.mbt (init_defaults)
 DoubleOption(d) => {
   let value = match d.env {
-    Some(env_name) =>
-      match @sys.get_env_var(env_name) {
-        Some(env_val) =>
-          match parse_double_safe(env_val) {
-            Some(n) => Some(n)
-            None => d.default
-          }
-        None =>
-          match config {
-            Some(cfg) =>
-              match cfg.get(d.key) {
-                Some(cfg_val) =>
-                  match parse_double_safe(cfg_val) {
-                    Some(n) => Some(n)
+        Some(env_name) =>
+          match @sys.get_env_var(env_name) {
+            Some(env_val) =>
+              match parse_double(env_val) {
+                Some(n) => Some(n)
+                None =>
+                  match config {
+                    Some(cfg) =>
+                      match cfg.get(d.key) {
+                        Some(cfg_val) =>
+                          match parse_double(cfg_val) {
+                            Some(n) => Some(n)
+                            None => d.default
+                          }
+                        None => d.default
+                      }
+                    None => d.default
+                  }
+              }
+            None =>
+              match config {
+                Some(cfg) =>
+                  match cfg.get(d.key) {
+                    Some(cfg_val) =>
+                      match parse_double(cfg_val) {
+                        Some(n) => Some(n)
+                        None => d.default
+                      }
                     None => d.default
                   }
                 None => d.default
               }
-            None => d.default
           }
-      }
     None =>
       match config {
         Some(cfg) =>
-          match cfg.get(d.key) {
-            Some(cfg_val) =>
-              match parse_double_safe(cfg_val) {
-                Some(n) => Some(n)
-                None => d.default
-              }
-            None => d.default
-          }
+            match cfg.get(d.key) {
+              Some(cfg_val) =>
+                match parse_double(cfg_val) {
+                  Some(n) => Some(n)
+                  None => d.default
+                }
+              None => d.default
+            }
         None => d.default
       }
   }
@@ -364,7 +378,11 @@ DoubleOption(d) => {
 // src/margs/config.mbt
 match value {
   String(s) => config.set(key, s)
-  Number(n) => config.set(key, format_json_number(n))
+  Number(n, repr~) =>
+    match format_json_number(n, repr) {
+      Some(value) => config.set(key, value)
+      None => ()
+    }
   True => config.set(key, "true")
   False => config.set(key, "false")
   _ => ()
@@ -373,13 +391,14 @@ match value {
 
 ```moonbit
 // src/margs/config.mbt
-fn format_json_number(n : Double) -> String {
-  if n.is_nan() || n.is_infinite() {
-    ""
-  } else if n == n.round() {
-    n.round().to_int().to_string()
+fn format_json_number(value : Double, repr : String?) -> String? {
+  if value.is_nan() || value == @double.infinity || value == @double.neg_infinity {
+    None
   } else {
-    n.to_string()
+    match repr {
+      Some(raw) => Some(raw)
+      None => Some(value.to_string())
+    }
   }
 }
 ```

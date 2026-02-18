@@ -229,6 +229,7 @@ pub fn ParsedArgs::get_int(Self, String) -> Int?
 pub fn ParsedArgs::get_positional(Self, Int) -> String?
 pub fn ParsedArgs::get_string(Self, String) -> String?
 pub fn ParsedArgs::get_string_list(Self, String) -> Array[String]
+pub fn ParsedArgs::require_double(Self, String) -> Double raise ParseError
 pub fn ParsedArgs::require_int(Self, String) -> Int raise ParseError
 pub fn ParsedArgs::require_string(Self, String) -> String raise ParseError
 pub impl Eq for ParsedArgs
@@ -299,4 +300,3 @@ pub impl Show for SubcommandSpec
 // Type aliases
 
 // Traits
-

@@ -121,7 +121,7 @@ test "full precedence chain: cli > env > config > default" {
   inspect(result.get_string("beta"), content="Some(\"from_env\")")
   // gamma: has cli, has env → cli wins
   inspect(result.get_string("gamma"), content="Some(\"from_cli\")")
-  // delta: no cli, no env, no config → default
+  // delta: no cli, no env → uses config value
   inspect(result.get_string("delta"), content="Some(\"from_config\")")
   // epsilon: has cli, has env, has config → cli wins
   inspect(result.get_double("epsilon"), content="Some(3.5)")

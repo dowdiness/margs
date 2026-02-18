@@ -50,12 +50,6 @@ fn parse_int_safe(s : String) -> Int? {
 }
 
 ///|
-/// Safely parse a double from a string, returning None on failure.
-fn parse_double_safe(s : String) -> Double? {
-  parse_double(s)
-}
-
-///|
 /// Parse a boolean from an environment variable value.
 /// Accepts: "1", "true", "yes", "on" (case-insensitive) as true.
 /// Everything else is false.
@@ -200,9 +194,21 @@ fn init_defaults(
             match @sys.get_env_var(env_name) {
               Some(env_val) =>
                 // Parse env var as double
-                match parse_double_safe(env_val) {
+                match parse_double(env_val) {
                   Some(n) => Some(n)
-                  None => d.default // Fall back to default if parse fails
+                  None =>
+                    match config {
+                      Some(cfg) =>
+                        match cfg.get(d.key) {
+                          Some(cfg_val) =>
+                            match parse_double(cfg_val) {
+                              Some(n) => Some(n)
+                              None => d.default
+                            }
+                          None => d.default
+                        }
+                      None => d.default
+                    }
                 }
               None =>
                 // Try config file
@@ -210,7 +216,7 @@ fn init_defaults(
                   Some(cfg) =>
                     match cfg.get(d.key) {
                       Some(cfg_val) =>
-                        match parse_double_safe(cfg_val) {
+                        match parse_double(cfg_val) {
                           Some(n) => Some(n)
                           None => d.default
                         }
@@ -225,7 +231,7 @@ fn init_defaults(
               Some(cfg) =>
                 match cfg.get(d.key) {
                   Some(cfg_val) =>
-                    match parse_double_safe(cfg_val) {
+                    match parse_double(cfg_val) {
                       Some(n) => Some(n)
                       None => d.default
                     }
@@ -398,7 +404,7 @@ fn apply_option_value(
           )
       }
     DoubleOption(d) =>
-      match parse_double_safe(raw_value) {
+      match parse_double(raw_value) {
         Some(n) => {
           match d.validator {
             Some(validate) =>
@@ -801,6 +807,18 @@ pub fn ParsedArgs::require_int(
   match self.values.get(key) {
     Some(Int(n)) => n
     _ => raise MissingRequired("required integer option '\{key}' is missing")
+  }
+}
+
+///|
+/// Require a double value by key (raises if missing)
+pub fn ParsedArgs::require_double(
+  self : ParsedArgs,
+  key : String,
+) -> Double raise ParseError {
+  match self.values.get(key) {
+    Some(Double(n)) => n
+    _ => raise MissingRequired("required double option '\{key}' is missing")
   }
 }
 

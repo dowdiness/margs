@@ -21,7 +21,9 @@ fn read_file_safe(path : String) -> String? {
 
 ///|
 /// Parse JSON content into a simple key-value map.
-/// Only extracts top-level string values for simplicity.
+/// Extracts top-level string, number, and boolean values.
+/// Numbers are formatted via `format_json_number`, booleans map to "true"/"false".
+/// Non-primitive values are ignored.
 pub fn parse_json_config(content : String) -> Map[String, String]? {
   let json = @json.parse(content) catch { _ => return None }
 
@@ -31,8 +33,8 @@ pub fn parse_json_config(content : String) -> Map[String, String]? {
       entries.each(fn(key, value) {
         match value {
           String(s) => config.set(key, s)
-          Number(n, repr~) =>
-            match format_json_number(n, repr) {
+          Number(n, ..) =>
+            match format_json_number(n) {
               Some(value) => config.set(key, value)
               None => ()
             }
@@ -52,17 +54,16 @@ pub fn parse_json_config(content : String) -> Map[String, String]? {
 }
 
 ///|
-/// Format a JSON number as a string, preserving raw JSON representation when available.
-fn format_json_number(value : Double, repr : String?) -> String? {
+/// Extract all quoted strings from JSON content.
+fn format_json_number(value : Double) -> String? {
   if value.is_nan() ||
     value == @double.infinity ||
     value == @double.neg_infinity {
     None
+  } else if value == value.round() {
+    Some(value.round().to_int().to_string())
   } else {
-    match repr {
-      Some(raw) => Some(raw)
-      None => Some(value.to_string())
-    }
+    Some(value.to_string())
   }
 }
 

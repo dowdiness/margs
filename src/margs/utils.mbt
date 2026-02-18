@@ -227,6 +227,21 @@ test "parse_double with valid value" {
 }
 
 ///|
+test "parse_double with negative value" {
+  inspect(parse_double("-1.5"), content="Some(-1.5)")
+}
+
+///|
+test "parse_double empty string" {
+  inspect(parse_double(""), content="None")
+}
+
+///|
+test "parse_double integer string" {
+  inspect(parse_double("42"), content="Some(42)")
+}
+
+///|
 test "parse_double rejects NaN" {
   inspect(parse_double("NaN"), content="None")
 }
@@ -234,6 +249,11 @@ test "parse_double rejects NaN" {
 ///|
 test "parse_double rejects infinity" {
   inspect(parse_double("Infinity"), content="None")
+}
+
+///|
+test "parse_double rejects -Infinity" {
+  inspect(parse_double("-Infinity"), content="None")
 }
 
 ///|

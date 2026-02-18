@@ -144,12 +144,13 @@ test "generate metadata includes metavar for value options" {
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("file", metavar="PATH"))
     .add_option(int_option("count", metavar="NUM"))
-    .add_option(double_option("ratio", metavar="NUM"))
+    .add_option(double_option("ratio", metavar="FLOAT"))
 
   let meta = generate_metadata(p)
 
   inspect(meta.contains("\"metavar\": \"PATH\""), content="true")
   inspect(meta.contains("\"metavar\": \"NUM\""), content="true")
+  inspect(meta.contains("\"metavar\": \"FLOAT\""), content="true")
 }
 
 // Helper function to count occurrences of a substring

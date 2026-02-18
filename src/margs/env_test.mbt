@@ -95,6 +95,20 @@ test "env var parses double option" {
 }
 
 ///|
+test "invalid double in env var falls back to default" {
+  @sys.set_env_var("TEST_RATIO", "not-a-number")
+
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    double_option("ratio", env="TEST_RATIO", default=1.5),
+  )
+
+  let result = p.parse([])
+  inspect(result.get_double("ratio"), content="Some(1.5)")
+
+  @sys.unset_env_var("TEST_RATIO")
+}
+
+///|
 test "env var parses bool flag as true" {
   @sys.set_env_var("TEST_VERBOSE", "true")
 
