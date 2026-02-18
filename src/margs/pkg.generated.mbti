@@ -8,6 +8,8 @@ pub fn create_cli(String, description? : String, version? : String) -> Cli
 
 pub fn discover_config_file(String) -> String?
 
+pub fn double_option(String, short? : Char, long? : String, help? : String, metavar? : String, required? : Bool, default? : Double, env? : String, validator? : (Double) -> Bool) -> OptionSpec
+
 pub fn exit_code_for_error(ParseError) -> ExitCode
 
 pub fn failure(String) -> Unit
@@ -51,6 +53,8 @@ pub fn option_required(OptionSpec) -> Bool
 pub fn option_short(OptionSpec) -> Char?
 
 pub fn pad_right(String, Int) -> String
+
+pub fn parse_double(String) -> Double?
 
 pub fn parse_int(String) -> Int?
 
@@ -98,6 +102,7 @@ pub suberror ParseError {
 pub enum ArgValue {
   Str(String)
   Int(Int)
+  Double(Double)
   Bool(Bool)
   StrList(Array[String])
 }
@@ -160,6 +165,19 @@ pub struct CliTestResult {
   error : ParseError?
 }
 
+pub struct DoubleOptionDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  metavar : String
+  required : Bool
+  default : Double?
+  env : String?
+  validator : ((Double) -> Bool)?
+}
+pub impl Show for DoubleOptionDef
+
 pub enum ExitCode {
   Success
   GeneralError
@@ -194,6 +212,7 @@ pub impl Show for LogLevel
 pub enum OptionSpec {
   StringOption(StringOptionDef)
   IntOption(IntOptionDef)
+  DoubleOption(DoubleOptionDef)
   BoolFlag(BoolFlagDef)
   StringListOption(StringListOptionDef)
 }
@@ -205,6 +224,7 @@ pub struct ParsedArgs {
   positionals : Array[String]
 }
 pub fn ParsedArgs::get_bool(Self, String) -> Bool
+pub fn ParsedArgs::get_double(Self, String) -> Double?
 pub fn ParsedArgs::get_int(Self, String) -> Int?
 pub fn ParsedArgs::get_positional(Self, Int) -> String?
 pub fn ParsedArgs::get_string(Self, String) -> String?
