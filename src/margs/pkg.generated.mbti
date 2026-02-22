@@ -219,11 +219,10 @@ pub enum OptionSpec {
 pub impl Show for OptionSpec
 
 pub struct ParsedArgs {
-  command_path : Array[String]
-  values : Map[String, ArgValue]
-  positionals : Array[String]
+  // private fields
 }
 pub fn ParsedArgs::get_bool(Self, String) -> Bool
+pub fn ParsedArgs::get_command_path(Self) -> Array[String]
 pub fn ParsedArgs::get_double(Self, String) -> Double?
 pub fn ParsedArgs::get_int(Self, String) -> Int?
 pub fn ParsedArgs::get_positional(Self, Int) -> String?
@@ -296,6 +295,15 @@ pub struct SubcommandSpec {
   subcommands : Array[SubcommandSpec]
 }
 pub impl Show for SubcommandSpec
+
+pub enum ValueSource {
+  FromCli
+  FromEnv
+  FromConfig
+  FromDefault
+}
+pub impl Eq for ValueSource
+pub impl Show for ValueSource
 
 // Type aliases
 
