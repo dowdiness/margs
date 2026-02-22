@@ -98,6 +98,40 @@ fn split_env_list(s : String) -> Array[String] {
 }
 
 ///|
+/// Resolve a raw string value from env → config → default, in that order.
+/// Returns the value and its source, or None if nothing is configured.
+fn resolve_raw_value(
+  key : String,
+  env : String?,
+  config : Map[String, String]?,
+  default : String?,
+) -> (String, ValueSource)? {
+  // 1. Environment variable
+  match env {
+    Some(env_name) =>
+      match @sys.get_env_var(env_name) {
+        Some(val) => return Some((val, FromEnv))
+        None => ()
+      }
+    None => ()
+  }
+  // 2. Config file
+  match config {
+    Some(cfg) =>
+      match cfg.get(key) {
+        Some(val) => return Some((val, FromConfig))
+        None => ()
+      }
+    None => ()
+  }
+  // 3. Default
+  match default {
+    Some(val) => Some((val, FromDefault))
+    None => None
+  }
+}
+
+///|
 /// Initialize default values from option specs.
 /// Checks environment variables and config file before falling back to defaults.
 /// Precedence: env var > config file > default value
