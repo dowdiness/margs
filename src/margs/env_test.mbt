@@ -109,6 +109,27 @@ test "invalid double in env var falls back to default" {
 }
 
 ///|
+test "invalid required double in env var fails parse-time validation" {
+  @sys.set_env_var("TEST_REQUIRED_RATIO", "not-a-number")
+
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    double_option("ratio", env="TEST_REQUIRED_RATIO", required=true),
+  )
+
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {
+    @margs.MissingRequired(_) => {
+      caught.val = true
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+
+  @sys.unset_env_var("TEST_REQUIRED_RATIO")
+}
+
+///|
 test "env var parses bool flag as true" {
   @sys.set_env_var("TEST_VERBOSE", "true")
 

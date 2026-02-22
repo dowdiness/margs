@@ -69,6 +69,30 @@ test "config file falls back to default if file missing" {
 }
 
 ///|
+test "invalid required double in config fails parse-time validation" {
+  let config_content = "{\"ratio\": \"not-a-number\"}"
+  @fs.write_string_to_file(
+    ".test_config_invalid_required_double.json", config_content,
+  )
+
+  let p = parser("test", builder=fn(args) { args })
+    .add_option(double_option("ratio", required=true))
+    .with_config_file(".test_config_invalid_required_double.json")
+
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {
+    @margs.MissingRequired(_) => {
+      caught.val = true
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+
+  @fs.remove_file(".test_config_invalid_required_double.json")
+}
+
+///|
 test "bool flag loads from config file" {
   let config_content = "{\"verbose\": \"true\", \"debug\": \"1\"}"
   @fs.write_string_to_file(".test_config4.json", config_content)
