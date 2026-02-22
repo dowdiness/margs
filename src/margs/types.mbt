@@ -26,6 +26,15 @@ pub impl Show for ArgValue with output(self, logger) {
 }
 
 ///|
+/// Source from which a parsed argument value was obtained.
+pub enum ValueSource {
+  FromCli
+  FromEnv
+  FromConfig
+  FromDefault
+} derive(Show, Eq)
+
+///|
 /// Definition for a string-valued option
 pub struct StringOptionDef {
   key : String
@@ -159,9 +168,9 @@ pub struct SubcommandSpec {
 ///|
 /// Result of parsing arguments
 pub struct ParsedArgs {
-  command_path : Array[String]
-  values : Map[String, ArgValue]
-  positionals : Array[String]
+  priv command_path : Array[String]
+  priv values : Map[String, (ArgValue, ValueSource)]
+  priv positionals : Array[String]
 } derive(Show, Eq)
 
 ///|

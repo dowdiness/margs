@@ -98,221 +98,100 @@ fn split_env_list(s : String) -> Array[String] {
 }
 
 ///|
+/// Resolve a raw string value from env → config → default, in that order.
+/// Returns the value and its source, or None if nothing is configured.
+fn resolve_raw_value(
+  key : String,
+  env : String?,
+  config : Map[String, String]?,
+  default : String?,
+) -> (String, ValueSource)? {
+  // 1. Environment variable
+  match env {
+    Some(env_name) =>
+      match @sys.get_env_var(env_name) {
+        Some(val) => return Some((val, FromEnv))
+        None => ()
+      }
+    None => ()
+  }
+  // 2. Config file
+  match config {
+    Some(cfg) =>
+      match cfg.get(key) {
+        Some(val) => return Some((val, FromConfig))
+        None => ()
+      }
+    None => ()
+  }
+  // 3. Default
+  match default {
+    Some(val) => Some((val, FromDefault))
+    None => None
+  }
+}
+
+///|
 /// Initialize default values from option specs.
 /// Checks environment variables and config file before falling back to defaults.
 /// Precedence: env var > config file > default value
 fn init_defaults(
   options : Array[OptionSpec],
   config : Map[String, String]?,
-) -> Map[String, ArgValue] {
-  let values : Map[String, ArgValue] = {}
+) -> Map[String, (ArgValue, ValueSource)] {
+  let values : Map[String, (ArgValue, ValueSource)] = {}
   for opt in options {
     match opt {
       StringOption(d) => {
-        // Try env var first, then config, then default
-        let value = match d.env {
-          Some(env_name) =>
-            match @sys.get_env_var(env_name) {
-              Some(env_val) => Some(env_val)
-              None =>
-                // Try config file
-                match config {
-                  Some(cfg) =>
-                    match cfg.get(d.key) {
-                      Some(v) => Some(v)
-                      None => d.default
-                    }
-                  None => d.default
-                }
-            }
-          None =>
-            // No env var, try config
-            match config {
-              Some(cfg) =>
-                match cfg.get(d.key) {
-                  Some(v) => Some(v)
-                  None => d.default
-                }
-              None => d.default
-            }
-        }
-        match value {
-          Some(v) => values[d.key] = Str(v)
+        match resolve_raw_value(d.key, d.env, config, d.default) {
+          Some((v, source)) => values[d.key] = (Str(v), source)
           None => ()
         }
       }
       IntOption(d) => {
-        // Try env var first, then config, then default
-        let value = match d.env {
-          Some(env_name) =>
-            match @sys.get_env_var(env_name) {
-              Some(env_val) =>
-                // Parse env var as int
-                match parse_int_safe(env_val) {
-                  Some(n) => Some(n)
-                  None => d.default // Fall back to default if parse fails
-                }
+        let default_str = d.default.map(fn(n) { n.to_string() })
+        match resolve_raw_value(d.key, d.env, config, default_str) {
+          Some((v, source)) =>
+            match parse_int_safe(v) {
+              Some(n) => values[d.key] = (Int(n), source)
               None =>
-                // Try config file
-                match config {
-                  Some(cfg) =>
-                    match cfg.get(d.key) {
-                      Some(cfg_val) =>
-                        match parse_int_safe(cfg_val) {
-                          Some(n) => Some(n)
-                          None => d.default
-                        }
-                      None => d.default
-                    }
-                  None => d.default
+                match d.default {
+                  Some(n) => values[d.key] = (Int(n), FromDefault)
+                  None => ()
                 }
             }
-          None =>
-            // No env var, try config
-            match config {
-              Some(cfg) =>
-                match cfg.get(d.key) {
-                  Some(cfg_val) =>
-                    match parse_int_safe(cfg_val) {
-                      Some(n) => Some(n)
-                      None => d.default
-                    }
-                  None => d.default
-                }
-              None => d.default
-            }
-        }
-        match value {
-          Some(v) => values[d.key] = Int(v)
           None => ()
         }
       }
       DoubleOption(d) => {
-        // Try env var first, then config, then default
-        // Track whether a parse failure occurred so we can store a sentinel
-        // when no valid fallback exists (enabling require_double to raise InvalidValue)
-        let mut had_parse_failure = false
-        let value = match d.env {
-          Some(env_name) =>
-            match @sys.get_env_var(env_name) {
-              Some(env_val) =>
-                // Parse env var as double
-                match parse_double(env_val) {
-                  Some(n) => Some(n)
-                  None => {
-                    had_parse_failure = true
-                    d.default // Fall back to default if parse fails
-                  }
-                }
+        let default_str = d.default.map(fn(n) { n.to_string() })
+        match resolve_raw_value(d.key, d.env, config, default_str) {
+          Some((v, source)) =>
+            match parse_double(v) {
+              Some(n) => values[d.key] = (Double(n), source)
               None =>
-                // Try config file
-                match config {
-                  Some(cfg) =>
-                    match cfg.get(d.key) {
-                      Some(cfg_val) =>
-                        match parse_double(cfg_val) {
-                          Some(n) => Some(n)
-                          None => {
-                            had_parse_failure = true
-                            d.default
-                          }
-                        }
-                      None => d.default
-                    }
-                  None => d.default
+                // Parse failed — fall back to typed default, or store NaN sentinel
+                // so require_double can raise InvalidValue instead of MissingRequired
+                match d.default {
+                  Some(n) => values[d.key] = (Double(n), FromDefault)
+                  None => values[d.key] = (Double(@double.not_a_number), source)
                 }
             }
-          None =>
-            // No env var, try config
-            match config {
-              Some(cfg) =>
-                match cfg.get(d.key) {
-                  Some(cfg_val) =>
-                    match parse_double(cfg_val) {
-                      Some(n) => Some(n)
-                      None => {
-                        had_parse_failure = true
-                        d.default
-                      }
-                    }
-                  None => d.default
-                }
-              None => d.default
-            }
-        }
-        match value {
-          Some(v) => values[d.key] = Double(v)
-          // Store NaN sentinel when a source provided an invalid value with no
-          // valid fallback, so require_double raises InvalidValue instead of MissingRequired
-          None =>
-            if had_parse_failure {
-              values[d.key] = Double(@double.not_a_number)
-            }
+          None => ()
         }
       }
       BoolFlag(d) => {
-        // Try env var first, then config, then default
-        let value = match d.env {
-          Some(env_name) =>
-            match @sys.get_env_var(env_name) {
-              Some(env_val) =>
-                // Parse env var as bool
-                parse_bool_env(env_val)
-              None =>
-                // Try config file
-                match config {
-                  Some(cfg) =>
-                    match cfg.get(d.key) {
-                      Some(cfg_val) => parse_bool_env(cfg_val)
-                      None => d.default
-                    }
-                  None => d.default
-                }
-            }
-          None =>
-            // No env var, try config
-            match config {
-              Some(cfg) =>
-                match cfg.get(d.key) {
-                  Some(cfg_val) => parse_bool_env(cfg_val)
-                  None => d.default
-                }
-              None => d.default
-            }
+        let default_str = Some(if d.default { "true" } else { "false" })
+        match resolve_raw_value(d.key, d.env, config, default_str) {
+          Some((v, source)) => values[d.key] = (Bool(parse_bool_env(v)), source)
+          None => ()
         }
-        values[d.key] = Bool(value)
       }
       StringListOption(d) => {
-        // Try env var first (comma-separated), then config, then empty list
-        let value = match d.env {
-          Some(env_name) =>
-            match @sys.get_env_var(env_name) {
-              Some(env_val) =>
-                // Split by comma
-                split_env_list(env_val)
-              None =>
-                // Try config file
-                match config {
-                  Some(cfg) =>
-                    match cfg.get(d.key) {
-                      Some(cfg_val) => split_env_list(cfg_val)
-                      None => []
-                    }
-                  None => []
-                }
-            }
-          None =>
-            // No env var, try config
-            match config {
-              Some(cfg) =>
-                match cfg.get(d.key) {
-                  Some(cfg_val) => split_env_list(cfg_val)
-                  None => []
-                }
-              None => []
-            }
+        match resolve_raw_value(d.key, d.env, config, None) {
+          Some((v, source)) => values[d.key] = (StrList(split_env_list(v)), source)
+          None => values[d.key] = (StrList([]), FromDefault)
         }
-        values[d.key] = StrList(value)
       }
     }
   }
@@ -374,7 +253,7 @@ fn find_subcommand(
 fn apply_option_value(
   opt : OptionSpec,
   raw_value : String,
-  values : Map[String, ArgValue],
+  values : Map[String, (ArgValue, ValueSource)],
 ) -> Unit raise ParseError {
   match opt {
     StringOption(d) => {
@@ -387,7 +266,7 @@ fn apply_option_value(
           }
         None => ()
       }
-      values[d.key] = Str(raw_value)
+      values[d.key] = (Str(raw_value), FromCli)
     }
     IntOption(d) =>
       match parse_int(raw_value) {
@@ -401,7 +280,7 @@ fn apply_option_value(
               }
             None => ()
           }
-          values[d.key] = Int(n)
+          values[d.key] = (Int(n), FromCli)
         }
         None =>
           raise InvalidValue(
@@ -420,21 +299,21 @@ fn apply_option_value(
               }
             None => ()
           }
-          values[d.key] = Double(n)
+          values[d.key] = (Double(n), FromCli)
         }
         None =>
           raise InvalidValue(
             "expected number for option '\{d.key}', got '\{raw_value}'",
           )
       }
-    BoolFlag(d) => values[d.key] = Bool(true)
+    BoolFlag(d) => values[d.key] = (Bool(true), FromCli)
     StringListOption(d) =>
       match values.get(d.key) {
-        Some(StrList(arr)) => {
+        Some((StrList(arr), _)) => {
           arr.push(raw_value)
-          values[d.key] = StrList(arr)
+          values[d.key] = (StrList(arr), FromCli)
         }
-        _ => values[d.key] = StrList([raw_value])
+        _ => values[d.key] = (StrList([raw_value]), FromCli)
       }
   }
 }
@@ -479,7 +358,7 @@ fn collect_short_names(options : Array[OptionSpec]) -> Array[String] {
 fn parse_long_option(
   name : String,
   options : Array[OptionSpec],
-  values : Map[String, ArgValue],
+  values : Map[String, (ArgValue, ValueSource)],
   args : Array[String],
   pos : Ref[Int],
 ) -> Unit raise ParseError {
@@ -529,7 +408,7 @@ fn parse_long_option(
 fn parse_short_option(
   chars : StringView,
   options : Array[OptionSpec],
-  values : Map[String, ArgValue],
+  values : Map[String, (ArgValue, ValueSource)],
   args : Array[String],
   pos : Ref[Int],
 ) -> Unit raise ParseError {
@@ -579,7 +458,7 @@ fn validate_required(
     if option_required(opt) {
       let key = option_key(opt)
       match parsed.values.get(key) {
-        Some(Double(n)) =>
+        Some((Double(n), _)) =>
           match opt {
             // Internal NaN sentinel represents a failed env/config parse
             // with no valid fallback, so required validation must still fail.
@@ -757,7 +636,7 @@ pub fn[T] Parser::run(self : Parser[T]) -> T raise ParseError {
 /// Get a string value by key
 pub fn ParsedArgs::get_string(self : ParsedArgs, key : String) -> String? {
   match self.values.get(key) {
-    Some(Str(s)) => Some(s)
+    Some((Str(s), _)) => Some(s)
     _ => None
   }
 }
@@ -766,7 +645,7 @@ pub fn ParsedArgs::get_string(self : ParsedArgs, key : String) -> String? {
 /// Get an integer value by key
 pub fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
   match self.values.get(key) {
-    Some(Int(n)) => Some(n)
+    Some((Int(n), _)) => Some(n)
     _ => None
   }
 }
@@ -776,7 +655,7 @@ pub fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
 pub fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
   match self.values.get(key) {
     // Treat NaN sentinel (from a failed parse with no default) as absent
-    Some(Double(n)) => if n.is_nan() { None } else { Some(n) }
+    Some((Double(n), _)) => if n.is_nan() { None } else { Some(n) }
     _ => None
   }
 }
@@ -785,7 +664,7 @@ pub fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
 /// Get a boolean value by key (defaults to false if not present)
 pub fn ParsedArgs::get_bool(self : ParsedArgs, key : String) -> Bool {
   match self.values.get(key) {
-    Some(Bool(b)) => b
+    Some((Bool(b), _)) => b
     _ => false
   }
 }
@@ -797,7 +676,7 @@ pub fn ParsedArgs::get_string_list(
   key : String,
 ) -> Array[String] {
   match self.values.get(key) {
-    Some(StrList(arr)) => arr
+    Some((StrList(arr), _)) => arr
     _ => []
   }
 }
@@ -809,7 +688,7 @@ pub fn ParsedArgs::require_string(
   key : String,
 ) -> String raise ParseError {
   match self.values.get(key) {
-    Some(Str(s)) => s
+    Some((Str(s), _)) => s
     _ => raise MissingRequired("required string option '\{key}' is missing")
   }
 }
@@ -821,7 +700,7 @@ pub fn ParsedArgs::require_int(
   key : String,
 ) -> Int raise ParseError {
   match self.values.get(key) {
-    Some(Int(n)) => n
+    Some((Int(n), _)) => n
     _ => raise MissingRequired("required integer option '\{key}' is missing")
   }
 }
@@ -834,7 +713,7 @@ pub fn ParsedArgs::require_double(
 ) -> Double raise ParseError {
   match self.values.get(key) {
     // NaN sentinel means a source provided an invalid value with no valid fallback
-    Some(Double(n)) =>
+    Some((Double(n), _)) =>
       if n.is_nan() {
         raise InvalidValue("invalid value for double option '\{key}'")
       } else {
@@ -852,4 +731,20 @@ pub fn ParsedArgs::get_positional(self : ParsedArgs, index : Int) -> String? {
   } else {
     None
   }
+}
+
+///|
+/// Get the source (CLI, env, config, default) of a value by key.
+/// Not pub — exposed through TypedHandle::source in Improvement 3.
+fn ParsedArgs::get_source(self : ParsedArgs, key : String) -> ValueSource? {
+  match self.values.get(key) {
+    Some((_, source)) => Some(source)
+    None => None
+  }
+}
+
+///|
+/// Get the command path (e.g. ["myapp", "serve"]).
+pub fn ParsedArgs::get_command_path(self : ParsedArgs) -> Array[String] {
+  self.command_path
 }
