@@ -118,7 +118,7 @@ test "invalid required double in env var fails parse-time validation" {
 
   let caught = Ref::new(false)
   let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {
-    @margs.MissingRequired(_) => {
+    @margs.InvalidValue(_) => {
       caught.val = true
       Err(())
     }

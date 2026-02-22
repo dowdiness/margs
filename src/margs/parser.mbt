@@ -585,7 +585,7 @@ fn validate_required(
             // with no valid fallback, so required validation must still fail.
             DoubleOption(_) =>
               if n.is_nan() {
-                raise MissingRequired("required option '\{key}' is missing")
+                raise InvalidValue("invalid value for double option '\{key}'")
               }
             _ => ()
           }
