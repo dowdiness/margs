@@ -26,6 +26,15 @@ pub impl Show for ArgValue with output(self, logger) {
 }
 
 ///|
+/// Source from which a parsed argument value was obtained.
+pub enum ValueSource {
+  FromCli
+  FromEnv
+  FromConfig
+  FromDefault
+} derive(Show, Eq)
+
+///|
 /// Definition for a string-valued option
 pub struct StringOptionDef {
   key : String
