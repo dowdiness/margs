@@ -196,19 +196,7 @@ fn init_defaults(
                 // Parse env var as double
                 match parse_double(env_val) {
                   Some(n) => Some(n)
-                  None =>
-                    match config {
-                      Some(cfg) =>
-                        match cfg.get(d.key) {
-                          Some(cfg_val) =>
-                            match parse_double(cfg_val) {
-                              Some(n) => Some(n)
-                              None => d.default
-                            }
-                          None => d.default
-                        }
-                      None => d.default
-                    }
+                  None => d.default // Fall back to default if parse fails
                 }
               None =>
                 // Try config file

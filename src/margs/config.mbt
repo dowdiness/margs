@@ -33,8 +33,8 @@ pub fn parse_json_config(content : String) -> Map[String, String]? {
       entries.each(fn(key, value) {
         match value {
           String(s) => config.set(key, s)
-          Number(n, ..) =>
-            match format_json_number(n) {
+          Number(n, repr~) =>
+            match format_json_number(n, repr) {
               Some(value) => config.set(key, value)
               None => ()
             }
@@ -54,16 +54,20 @@ pub fn parse_json_config(content : String) -> Map[String, String]? {
 }
 
 ///|
-/// Extract all quoted strings from JSON content.
-fn format_json_number(value : Double) -> String? {
+/// Format a JSON numeric value as a String, preserving integer formatting when possible.
+/// Returns None for NaN or Infinity. When repr is available, returns it directly
+/// to preserve the original textual representation (avoids 32-bit Int overflow for
+/// large integers). Falls back to value.to_string() when repr is None.
+fn format_json_number(value : Double, repr : String?) -> String? {
   if value.is_nan() ||
     value == @double.infinity ||
     value == @double.neg_infinity {
     None
-  } else if value == value.round() {
-    Some(value.round().to_int().to_string())
   } else {
-    Some(value.to_string())
+    match repr {
+      Some(raw) => Some(raw)
+      None => Some(value.to_string())
+    }
   }
 }
 

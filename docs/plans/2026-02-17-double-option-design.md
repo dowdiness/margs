@@ -18,7 +18,7 @@ CLI/env/config/default values are stored as strings (unchanged). When an option 
 
 ## Error Handling
 
-CLI invalid doubles fail during validation and surface as option validation errors. Env/config/default invalid doubles surface at `ParsedArgs::require_double` as `InvalidValue`, mirroring existing custom option behavior. `NaN`/`Infinity` are treated as invalid input in all sources.
+CLI invalid doubles (passed via `--flag value`) fail immediately during `apply_option_value` and raise `InvalidValue`. Env/config/default invalid doubles do **not** fail during load — `init_defaults` silently falls back to the option's `default` value (or omits the key entirely if `default` is `None`). `InvalidValue` is only returned later when `ParsedArgs::require_double` (or `get_double` with no default) is called and no valid value was stored. `NaN`/`Infinity` are treated as invalid input in all sources. This applies to `DoubleOption`, `parse_double`, and the `ParsedArgs::require_double` accessor.
 
 ## Testing
 
