@@ -168,9 +168,9 @@ pub struct SubcommandSpec {
 ///|
 /// Result of parsing arguments
 pub struct ParsedArgs {
-  command_path : Array[String]
-  values : Map[String, ArgValue]
-  positionals : Array[String]
+  priv command_path : Array[String]
+  priv values : Map[String, (ArgValue, ValueSource)]
+  priv positionals : Array[String]
 } derive(Show, Eq)
 
 ///|

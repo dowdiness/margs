@@ -382,7 +382,7 @@ test "subcommand dispatches correctly" {
   ])
   let p = make_test_parser(subcommands=[sub])
   let result = p.parse(["build", "--release"])
-  inspect(result.command_path.length(), content="2")
+  inspect(result.get_command_path().length(), content="2")
   inspect(result.get_bool("release"), content="true")
 }
 
@@ -391,7 +391,7 @@ test "subcommand with alias" {
   let sub = subcommand("build", aliases=["b"])
   let p = make_test_parser(subcommands=[sub])
   let result = p.parse(["b"])
-  inspect(result.command_path.length(), content="2")
+  inspect(result.get_command_path().length(), content="2")
 }
 
 ///|
@@ -404,7 +404,7 @@ test "subcommand preserves parent options" {
   let result = p.parse(["--config", "my.toml", "build", "--release"])
   inspect(result.get_string("config"), content="Some(\"my.toml\")")
   inspect(result.get_bool("release"), content="true")
-  inspect(result.command_path.length(), content="2")
+  inspect(result.get_command_path().length(), content="2")
 }
 
 ///|
@@ -438,7 +438,7 @@ test "subcommand with parent required positional does not fail" {
   ])
   // Subcommand dispatch should NOT check parent positionals
   let result = p.parse(["build", "--release"])
-  inspect(result.command_path.length(), content="2")
+  inspect(result.get_command_path().length(), content="2")
   inspect(result.get_bool("release"), content="true")
 }
 
@@ -473,7 +473,7 @@ test "positional parsed when subcommands defined but not matched" {
   let p = make_test_parser(positionals=[positional("file")], subcommands=[sub])
   let result = p.parse(["hello.txt"])
   inspect(result.get_positional(0), content="Some(\"hello.txt\")")
-  inspect(result.command_path.length(), content="1")
+  inspect(result.get_command_path().length(), content="1")
 }
 
 ///|
@@ -481,7 +481,7 @@ test "subcommand still works when positionals also defined" {
   let sub = subcommand("build", options=[flag("release", long="release")])
   let p = make_test_parser(positionals=[positional("file")], subcommands=[sub])
   let result = p.parse(["build", "--release"])
-  inspect(result.command_path.length(), content="2")
+  inspect(result.get_command_path().length(), content="2")
   inspect(result.get_bool("release"), content="true")
 }
 
