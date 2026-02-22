@@ -85,6 +85,15 @@ fn option_to_json(opt : OptionSpec, indent~ : Int) -> String {
       )
       buf.write_string("\{spaces}  \"required\": \{d.required}\n")
     }
+    DoubleOption(d) => {
+      buf.write_string("\{spaces}  \"key\": \"\{escape_json(d.key)}\",\n")
+      buf.write_string("\{spaces}  \"type\": \"double\",\n")
+      write_option_common_fields(buf, spaces, d.short, d.long, d.help)
+      buf.write_string(
+        "\{spaces}  \"metavar\": \"\{escape_json(d.metavar)}\",\n",
+      )
+      buf.write_string("\{spaces}  \"required\": \{d.required}\n")
+    }
     BoolFlag(d) => {
       buf.write_string("\{spaces}  \"key\": \"\{escape_json(d.key)}\",\n")
       buf.write_string("\{spaces}  \"type\": \"bool\",\n")

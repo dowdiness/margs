@@ -187,6 +187,69 @@ fn init_defaults(
           None => ()
         }
       }
+      DoubleOption(d) => {
+        // Try env var first, then config, then default
+        // Track whether a parse failure occurred so we can store a sentinel
+        // when no valid fallback exists (enabling require_double to raise InvalidValue)
+        let mut had_parse_failure = false
+        let value = match d.env {
+          Some(env_name) =>
+            match @sys.get_env_var(env_name) {
+              Some(env_val) =>
+                // Parse env var as double
+                match parse_double(env_val) {
+                  Some(n) => Some(n)
+                  None => {
+                    had_parse_failure = true
+                    d.default // Fall back to default if parse fails
+                  }
+                }
+              None =>
+                // Try config file
+                match config {
+                  Some(cfg) =>
+                    match cfg.get(d.key) {
+                      Some(cfg_val) =>
+                        match parse_double(cfg_val) {
+                          Some(n) => Some(n)
+                          None => {
+                            had_parse_failure = true
+                            d.default
+                          }
+                        }
+                      None => d.default
+                    }
+                  None => d.default
+                }
+            }
+          None =>
+            // No env var, try config
+            match config {
+              Some(cfg) =>
+                match cfg.get(d.key) {
+                  Some(cfg_val) =>
+                    match parse_double(cfg_val) {
+                      Some(n) => Some(n)
+                      None => {
+                        had_parse_failure = true
+                        d.default
+                      }
+                    }
+                  None => d.default
+                }
+              None => d.default
+            }
+        }
+        match value {
+          Some(v) => values[d.key] = Double(v)
+          // Store NaN sentinel when a source provided an invalid value with no
+          // valid fallback, so require_double raises InvalidValue instead of MissingRequired
+          None =>
+            if had_parse_failure {
+              values[d.key] = Double(@double.not_a_number)
+            }
+        }
+      }
       BoolFlag(d) => {
         // Try env var first, then config, then default
         let value = match d.env {
@@ -345,6 +408,25 @@ fn apply_option_value(
             "expected integer for option '\{d.key}', got '\{raw_value}'",
           )
       }
+    DoubleOption(d) =>
+      match parse_double(raw_value) {
+        Some(n) => {
+          match d.validator {
+            Some(validate) =>
+              if not(validate(n)) {
+                raise InvalidValue(
+                  "invalid value '\{raw_value}' for option '\{d.key}'",
+                )
+              }
+            None => ()
+          }
+          values[d.key] = Double(n)
+        }
+        None =>
+          raise InvalidValue(
+            "expected number for option '\{d.key}', got '\{raw_value}'",
+          )
+      }
     BoolFlag(d) => values[d.key] = Bool(true)
     StringListOption(d) =>
       match values.get(d.key) {
@@ -497,6 +579,16 @@ fn validate_required(
     if option_required(opt) {
       let key = option_key(opt)
       match parsed.values.get(key) {
+        Some(Double(n)) =>
+          match opt {
+            // Internal NaN sentinel represents a failed env/config parse
+            // with no valid fallback, so required validation must still fail.
+            DoubleOption(_) =>
+              if n.is_nan() {
+                raise InvalidValue("invalid value for double option '\{key}'")
+              }
+            _ => ()
+          }
         Some(_) => ()
         None => raise MissingRequired("required option '\{key}' is missing")
       }
@@ -680,6 +772,16 @@ pub fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
 }
 
 ///|
+/// Get a double value by key
+pub fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
+  match self.values.get(key) {
+    // Treat NaN sentinel (from a failed parse with no default) as absent
+    Some(Double(n)) => if n.is_nan() { None } else { Some(n) }
+    _ => None
+  }
+}
+
+///|
 /// Get a boolean value by key (defaults to false if not present)
 pub fn ParsedArgs::get_bool(self : ParsedArgs, key : String) -> Bool {
   match self.values.get(key) {
@@ -721,6 +823,24 @@ pub fn ParsedArgs::require_int(
   match self.values.get(key) {
     Some(Int(n)) => n
     _ => raise MissingRequired("required integer option '\{key}' is missing")
+  }
+}
+
+///|
+/// Require a double value by key (raises if missing)
+pub fn ParsedArgs::require_double(
+  self : ParsedArgs,
+  key : String,
+) -> Double raise ParseError {
+  match self.values.get(key) {
+    // NaN sentinel means a source provided an invalid value with no valid fallback
+    Some(Double(n)) =>
+      if n.is_nan() {
+        raise InvalidValue("invalid value for double option '\{key}'")
+      } else {
+        n
+      }
+    _ => raise MissingRequired("required double option '\{key}' is missing")
   }
 }
 

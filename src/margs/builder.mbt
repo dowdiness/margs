@@ -53,6 +53,32 @@ pub fn int_option(
 }
 
 ///|
+/// Create a double option spec
+pub fn double_option(
+  key : String,
+  short? : Char,
+  long? : String,
+  help? : String = "",
+  metavar? : String = "NUM",
+  required? : Bool = false,
+  default? : Double,
+  env? : String,
+  validator? : (Double) -> Bool,
+) -> OptionSpec {
+  DoubleOption({
+    key,
+    short,
+    long,
+    help,
+    metavar,
+    required,
+    default,
+    env,
+    validator,
+  })
+}
+
+///|
 /// Create a boolean flag spec
 pub fn flag(
   key : String,

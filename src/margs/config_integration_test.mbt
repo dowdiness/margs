@@ -3,18 +3,20 @@
 ///|
 test "parser loads string option from config file" {
   // Create a temp config file
-  let config_content = "{\"host\": \"config.example.com\", \"port\": \"9000\"}"
+  let config_content = "{\"host\": \"config.example.com\", \"port\": \"9000\", \"ratio\": 1.25}"
   @fs.write_string_to_file(".test_config.json", config_content)
 
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("host", default="localhost"))
     .add_option(int_option("port", default=8080))
+    .add_option(double_option("ratio", default=0.5))
     .with_config_file(".test_config.json")
 
   let result = p.parse([])
 
   inspect(result.get_string("host"), content="Some(\"config.example.com\")")
   inspect(result.get_int("port"), content="Some(9000)")
+  inspect(result.get_double("ratio"), content="Some(1.25)")
 
   // Cleanup
   @fs.remove_file(".test_config.json")
@@ -67,6 +69,30 @@ test "config file falls back to default if file missing" {
 }
 
 ///|
+test "invalid required double in config fails parse-time validation" {
+  let config_content = "{\"ratio\": \"not-a-number\"}"
+  @fs.write_string_to_file(
+    ".test_config_invalid_required_double.json", config_content,
+  )
+
+  let p = parser("test", builder=fn(args) { args })
+    .add_option(double_option("ratio", required=true))
+    .with_config_file(".test_config_invalid_required_double.json")
+
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {
+    @margs.InvalidValue(_) => {
+      caught.val = true
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+
+  @fs.remove_file(".test_config_invalid_required_double.json")
+}
+
+///|
 test "bool flag loads from config file" {
   let config_content = "{\"verbose\": \"true\", \"debug\": \"1\"}"
   @fs.write_string_to_file(".test_config4.json", config_content)
@@ -86,11 +112,12 @@ test "bool flag loads from config file" {
 
 ///|
 test "full precedence chain: cli > env > config > default" {
-  let config_content = "{\"alpha\": \"from_config\", \"beta\": \"from_config\", \"gamma\": \"from_config\", \"delta\": \"from_config\"}"
+  let config_content = "{\"alpha\": \"from_config\", \"beta\": \"from_config\", \"gamma\": \"from_config\", \"delta\": \"from_config\", \"epsilon\": 1.25}"
   @fs.write_string_to_file(".test_config5.json", config_content)
 
   @sys.set_env_var("TEST_BETA", "from_env")
   @sys.set_env_var("TEST_GAMMA", "from_env")
+  @sys.set_env_var("TEST_EPSILON", "2.5")
 
   let p = parser("test", builder=fn(args) { args })
     .add_option(
@@ -105,9 +132,12 @@ test "full precedence chain: cli > env > config > default" {
     .add_option(
       str_option("delta", long="delta", env="TEST_DELTA", default="default"),
     )
+    .add_option(
+      double_option("epsilon", long="epsilon", env="TEST_EPSILON", default=0.5),
+    )
     .with_config_file(".test_config5.json")
 
-  let result = p.parse(["--gamma", "from_cli"])
+  let result = p.parse(["--gamma", "from_cli", "--epsilon", "3.5"])
 
   // alpha: no cli, no env → config
   inspect(result.get_string("alpha"), content="Some(\"from_config\")")
@@ -115,10 +145,13 @@ test "full precedence chain: cli > env > config > default" {
   inspect(result.get_string("beta"), content="Some(\"from_env\")")
   // gamma: has cli, has env → cli wins
   inspect(result.get_string("gamma"), content="Some(\"from_cli\")")
-  // delta: no cli, no env, no config → default
+  // delta: no cli, no env → uses config value
   inspect(result.get_string("delta"), content="Some(\"from_config\")")
+  // epsilon: has cli, has env, has config → cli wins
+  inspect(result.get_double("epsilon"), content="Some(3.5)")
 
   @sys.unset_env_var("TEST_BETA")
   @sys.unset_env_var("TEST_GAMMA")
+  @sys.unset_env_var("TEST_EPSILON")
   @fs.remove_file(".test_config5.json")
 }

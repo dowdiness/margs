@@ -25,6 +25,27 @@ test "parse JSON config with whitespace" {
 }
 
 ///|
+test "parse JSON config with numeric values" {
+  let json = "{\"rate\": 1.25, \"count\": 3}"
+  match parse_json_config(json) {
+    Some(config) => {
+      inspect(config.get("rate"), content="Some(\"1.25\")")
+      inspect(config.get("count"), content="Some(\"3\")")
+    }
+    None => inspect(false, content="true")
+  }
+}
+
+///|
+test "parse JSON config preserves integral numbers within range" {
+  let json = "{\"big\": 2147483647}"
+  match parse_json_config(json) {
+    Some(config) => inspect(config.get("big"), content="Some(\"2147483647\")")
+    None => inspect(false, content="true")
+  }
+}
+
+///|
 test "parse empty JSON returns None" {
   let json = "{}"
   match parse_json_config(json) {

@@ -81,6 +81,55 @@ test "invalid int in env var falls back to default" {
 }
 
 ///|
+test "env var parses double option" {
+  @sys.set_env_var("TEST_RATIO", "1.75")
+
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    double_option("ratio", env="TEST_RATIO"),
+  )
+
+  let result = p.parse([])
+  inspect(result.get_double("ratio"), content="Some(1.75)")
+
+  @sys.unset_env_var("TEST_RATIO")
+}
+
+///|
+test "invalid double in env var falls back to default" {
+  @sys.set_env_var("TEST_RATIO", "not-a-number")
+
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    double_option("ratio", env="TEST_RATIO", default=1.5),
+  )
+
+  let result = p.parse([])
+  inspect(result.get_double("ratio"), content="Some(1.5)")
+
+  @sys.unset_env_var("TEST_RATIO")
+}
+
+///|
+test "invalid required double in env var fails parse-time validation" {
+  @sys.set_env_var("TEST_REQUIRED_RATIO", "not-a-number")
+
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    double_option("ratio", env="TEST_REQUIRED_RATIO", required=true),
+  )
+
+  let caught = Ref::new(false)
+  let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {
+    @margs.InvalidValue(_) => {
+      caught.val = true
+      Err(())
+    }
+    _ => Err(())
+  }
+  inspect(caught.val, content="true")
+
+  @sys.unset_env_var("TEST_REQUIRED_RATIO")
+}
+
+///|
 test "env var parses bool flag as true" {
   @sys.set_env_var("TEST_VERBOSE", "true")
 

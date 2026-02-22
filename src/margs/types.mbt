@@ -5,6 +5,7 @@
 pub enum ArgValue {
   Str(String)
   Int(Int)
+  Double(Double)
   Bool(Bool)
   StrList(Array[String])
 } derive(Eq)
@@ -14,6 +15,7 @@ pub impl Show for ArgValue with output(self, logger) {
   match self {
     Str(s) => logger.write_string("Str(\{s})")
     Int(n) => logger.write_string("Int(\{n})")
+    Double(n) => logger.write_string("Double(\{n})")
     Bool(b) => logger.write_string("Bool(\{b})")
     StrList(arr) => {
       logger.write_string("StrList(")
@@ -52,6 +54,20 @@ pub struct IntOptionDef {
 }
 
 ///|
+/// Definition for a double-valued option
+pub struct DoubleOptionDef {
+  key : String
+  short : Char?
+  long : String?
+  help : String
+  metavar : String
+  required : Bool
+  default : Double?
+  env : String?
+  validator : ((Double) -> Bool)?
+}
+
+///|
 /// Definition for a boolean flag
 pub struct BoolFlagDef {
   key : String
@@ -78,6 +94,7 @@ pub struct StringListOptionDef {
 pub enum OptionSpec {
   StringOption(StringOptionDef)
   IntOption(IntOptionDef)
+  DoubleOption(DoubleOptionDef)
   BoolFlag(BoolFlagDef)
   StringListOption(StringListOptionDef)
 }
@@ -95,6 +112,11 @@ pub impl Show for IntOptionDef with output(self, logger) {
 }
 
 ///|
+pub impl Show for DoubleOptionDef with output(self, logger) {
+  logger.write_string("DoubleOptionDef(key=\{self.key})")
+}
+
+///|
 pub impl Show for BoolFlagDef with output(self, logger) {
   logger.write_string("BoolFlagDef(key=\{self.key})")
 }
@@ -109,6 +131,7 @@ pub impl Show for OptionSpec with output(self, logger) {
   match self {
     StringOption(d) => logger.write_object(d)
     IntOption(d) => logger.write_object(d)
+    DoubleOption(d) => logger.write_object(d)
     BoolFlag(d) => logger.write_object(d)
     StringListOption(d) => logger.write_object(d)
   }

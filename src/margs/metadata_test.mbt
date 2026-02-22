@@ -25,6 +25,7 @@ test "generate metadata includes all option types" {
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("name", short='n', help="Name value"))
     .add_option(int_option("port", short='p', help="Port number"))
+    .add_option(double_option("ratio", short='r', help="Ratio"))
     .add_option(flag("debug", short='d', help="Debug mode"))
     .add_option(str_list_option("tags", short='t', help="Tag list"))
 
@@ -32,6 +33,7 @@ test "generate metadata includes all option types" {
 
   inspect(meta.contains("\"type\": \"string\""), content="true")
   inspect(meta.contains("\"type\": \"int\""), content="true")
+  inspect(meta.contains("\"type\": \"double\""), content="true")
   inspect(meta.contains("\"type\": \"bool\""), content="true")
   inspect(meta.contains("\"type\": \"string_list\""), content="true")
 }
@@ -142,11 +144,13 @@ test "generate metadata includes metavar for value options" {
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("file", metavar="PATH"))
     .add_option(int_option("count", metavar="NUM"))
+    .add_option(double_option("ratio", metavar="FLOAT"))
 
   let meta = generate_metadata(p)
 
   inspect(meta.contains("\"metavar\": \"PATH\""), content="true")
   inspect(meta.contains("\"metavar\": \"NUM\""), content="true")
+  inspect(meta.contains("\"metavar\": \"FLOAT\""), content="true")
 }
 
 // Helper function to count occurrences of a substring

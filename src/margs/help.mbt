@@ -34,6 +34,7 @@ fn append_metavar(buf : StringBuilder, opt : OptionSpec) -> Unit {
   match opt {
     StringOption(d) => buf.write_string(" <\{d.metavar}>")
     IntOption(d) => buf.write_string(" <\{d.metavar}>")
+    DoubleOption(d) => buf.write_string(" <\{d.metavar}>")
     BoolFlag(_) => ()
     StringListOption(d) => buf.write_string(" <\{d.metavar}>")
   }
