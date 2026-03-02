@@ -246,7 +246,9 @@ test "run_for_test maps parse failures to exit code and output" {
 // of silently succeeding.
 test "spec-only group without handler raises help on bare invocation" {
   let cli = create_cli("demo").add_command(
-    command("group").add_subcommand(subcommand("child", description="A child cmd")),
+    command("group").add_subcommand(
+      subcommand("child", description="A child cmd"),
+    ),
   )
   let result = cli.run_for_test(["group"])
   inspect(result.exit_code.code(), content="0")
@@ -260,7 +262,9 @@ test "spec-only group without handler raises help on bare invocation" {
 ///|
 test "spec-only group without handler raises help when child not matched" {
   let cli = create_cli("demo").add_command(
-    command("group").add_subcommand(subcommand("child", description="A child cmd")),
+    command("group").add_subcommand(
+      subcommand("child", description="A child cmd"),
+    ),
   )
   // "unknown" is not a registered child; parser raises UnknownCommand before
   // dispatch, so verify the group itself doesn't silently swallow "group" alone.

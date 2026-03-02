@@ -118,12 +118,12 @@ pub fn Cli::add_after_hook(
 }
 
 ///|
-fn Cli::add_option_internal(self : Cli, opt : OptionSpec) -> Cli {
+fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
   { ..self, options: self.options + [opt] }
 }
 
 ///|
-fn CliCommand::add_option_internal(
+fn CliCommand::add_option(
   self : CliCommand,
   opt : OptionSpec,
 ) -> CliCommand {
@@ -141,7 +141,7 @@ pub fn[T] Cli::add(
     key,
     extract: fn(args) { (builder.extract)(args, key) },
   }
-  (self.add_option_internal(spec), handle)
+  (self.add_option(spec), handle)
 }
 
 ///|
@@ -155,12 +155,7 @@ pub fn[T] CliCommand::add(
     key,
     extract: fn(args) { (builder.extract)(args, key) },
   }
-  (self.add_option_internal(spec), handle)
-}
-
-///|
-fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
-  { ..self, options: self.options + [opt] }
+  (self.add_option(spec), handle)
 }
 
 ///|
@@ -185,11 +180,6 @@ pub fn Cli::with_version(self : Cli, version : String) -> Cli {
 /// Add a command to the CLI.
 pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
   { ..self, commands: self.commands + [cmd] }
-}
-
-///|
-fn CliCommand::add_option(self : CliCommand, opt : OptionSpec) -> CliCommand {
-  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
 }
 
 ///|

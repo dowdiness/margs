@@ -48,9 +48,9 @@ fn build_app() -> @margs.Cli {
     ),
   )
   let serve = serve.set_handler(handler=fn(args) {
-    let v = verbose.get(args).unwrap_or(false)
-    let h = host.get(args).unwrap_or("localhost")
-    let p = port.get(args).unwrap_or(3000)
+    let v = verbose.require(args)
+    let h = host.require(args)
+    let p = port.require(args)
     if v {
       println("[verbose] Configuring server...")
     }
@@ -80,8 +80,8 @@ fn build_app() -> @margs.Cli {
     ),
   )
   let build = build.set_handler(handler=fn(args) {
-    let v = verbose.get(args).unwrap_or(false)
-    let o = output.get(args).unwrap_or("dist")
+    let v = verbose.require(args)
+    let o = output.require(args)
     let ts = targets.get(args).unwrap_or([])
     if v {
       println("[verbose] Starting build...")
@@ -102,7 +102,7 @@ fn build_app() -> @margs.Cli {
     @margs.positional("name", help="Project name"),
   )
   let init_cmd = init_cmd.set_handler(handler=fn(args) {
-    let v = verbose.get(args).unwrap_or(false)
+    let v = verbose.require(args)
     let name = match args.get_positional(0) {
       Some(n) => n
       None => "my-project"
@@ -129,7 +129,7 @@ fn build_app() -> @margs.Cli {
     ),
   )
   let deploy = deploy.set_handler(handler=fn(args) {
-    let env = env_opt.get(args).unwrap_or("prod")
+    let env = env_opt.require(args)
     println("Deploying to \{env}...")
     println("Deployment complete!")
   })

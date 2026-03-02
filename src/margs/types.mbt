@@ -203,7 +203,7 @@ pub impl Eq for ParsedArgs with equal(self, other : ParsedArgs) -> Bool {
 
 ///|
 /// Encapsulates option construction and value extraction as closures.
-/// Returned by factory functions; consumed by `with[T]`.
+/// Returned by factory functions; consumed by `.add()`.
 pub struct OptionBuilder[T] {
   priv build_spec : (String) -> OptionSpec
   priv extract : (ParsedArgs, String) -> T?
@@ -211,7 +211,7 @@ pub struct OptionBuilder[T] {
 
 ///|
 /// Type-safe option handle. Binds option definition to value access at compile time.
-/// Fields are priv — handles can only be created via `with[T]`.
+/// Fields are priv — handles can only be created via `.add()`.
 pub struct TypedHandle[T] {
   priv key : String
   priv extract : (ParsedArgs) -> T?

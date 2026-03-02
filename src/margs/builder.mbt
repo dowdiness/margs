@@ -125,6 +125,11 @@ pub fn str_list_option(
 ///|
 /// Create a custom-typed option builder backed by a string option.
 /// `parse~` converts the raw string value to `T?`; returning `None` rejects the value.
+///
+/// Note: `default~` is stored as a raw string and is NOT validated through `parse` at
+/// build time. If the default string is not parseable, `TypedHandle::get` returns `None`
+/// and `TypedHandle::require` raises `InvalidValue`. Env-var values have the same caveat.
+/// CLI-provided values are validated at parse time via the derived validator.
 pub fn[T] custom_option(
   short? : Char,
   long? : String,
@@ -159,8 +164,8 @@ pub fn[T] custom_option(
 }
 
 ///|
-/// Pkg-private helper: materialise an OptionBuilder into an OptionSpec for a given key.
-/// Used internally by subcommand option arrays in tests.
+/// Materialise an OptionBuilder into an OptionSpec for a given key.
+/// Used when constructing subcommand option arrays via the low-level `subcommand()` API.
 pub fn[T] build_spec(key : String, builder : OptionBuilder[T]) -> OptionSpec {
   (builder.build_spec)(key)
 }
