@@ -202,6 +202,56 @@ pub impl Eq for ParsedArgs with equal(self, other : ParsedArgs) -> Bool {
 }
 
 ///|
+/// Encapsulates option construction and value extraction as closures.
+/// Returned by factory functions; consumed by `with[T]`.
+pub struct OptionBuilder[T] {
+  priv build_spec : (String) -> OptionSpec
+  priv extract : (ParsedArgs, String) -> T?
+}
+
+///|
+/// Type-safe option handle. Binds option definition to value access at compile time.
+/// Fields are priv — handles can only be created via `with[T]`.
+pub struct TypedHandle[T] {
+  priv key : String
+  priv extract : (ParsedArgs) -> T?
+}
+
+///|
+pub fn[T] TypedHandle::get(self : TypedHandle[T], args : ParsedArgs) -> T? {
+  (self.extract)(args)
+}
+
+///|
+/// Raises MissingRequired if no value was stored, or InvalidValue if a value
+/// was stored but extraction returned None (e.g. type conversion failed).
+pub fn[T] TypedHandle::require(
+  self : TypedHandle[T],
+  args : ParsedArgs,
+) -> T raise ParseError {
+  match (self.extract)(args) {
+    Some(v) => v
+    None =>
+      match args.get_source(self.key) {
+        Some(source) =>
+          raise InvalidValue(
+            "option '\{self.key}' has an invalid value (source: \{source})",
+          )
+        None =>
+          raise MissingRequired("required option '\{self.key}' is missing")
+      }
+  }
+}
+
+///|
+pub fn[T] TypedHandle::source(
+  self : TypedHandle[T],
+  args : ParsedArgs,
+) -> ValueSource? {
+  args.get_source(self.key)
+}
+
+///|
 /// Parse error type
 pub suberror ParseError {
   MissingRequired(String)
