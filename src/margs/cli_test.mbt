@@ -266,12 +266,11 @@ test "spec-only group without handler raises help when child not matched" {
       subcommand("child", description="A child cmd"),
     ),
   )
-  // "unknown" is not a registered child; parser raises UnknownCommand before
-  // dispatch, so verify the group itself doesn't silently swallow "group" alone.
-  let result = cli.run_for_test(["group"])
-  inspect(result.exit_code.code(), content="0")
+  // "unknown-child" is not a registered child; parser raises UnknownCommand.
+  let result = cli.run_for_test(["group", "unknown-child"])
+  inspect(result.exit_code.code(), content="2")
   match result.error {
-    Some(ParseError::HelpRequested(_)) => inspect(true, content="true")
+    Some(ParseError::UnknownCommand(_)) => inspect(true, content="true")
     _ => inspect(false, content="true")
   }
 }
