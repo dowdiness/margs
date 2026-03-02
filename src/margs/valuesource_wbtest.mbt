@@ -77,7 +77,14 @@ test "get_source returns FromEnv when env var is set" {
   let p = parser("test", builder=fn(args) { args }).add_option(
     str_option("host", long="host", env="TEST_VS_HOST"),
   )
-  let result = p.parse([])
+  let result = try {
+    p.parse([])
+  } catch {
+    e => {
+      @sys.unset_env_var("TEST_VS_HOST")
+      raise e
+    }
+  }
   @sys.unset_env_var("TEST_VS_HOST")
   inspect(result.get_source("host"), content="Some(FromEnv)")
 }
@@ -97,7 +104,14 @@ test "CLI value overrides env — source is FromCli" {
   let p = parser("test", builder=fn(args) { args }).add_option(
     int_option("port", long="port", env="TEST_VS_PORT"),
   )
-  let result = p.parse(["--port", "8080"])
+  let result = try {
+    p.parse(["--port", "8080"])
+  } catch {
+    e => {
+      @sys.unset_env_var("TEST_VS_PORT")
+      raise e
+    }
+  }
   @sys.unset_env_var("TEST_VS_PORT")
   inspect(result.get_source("port"), content="Some(FromCli)")
 }
@@ -144,12 +158,20 @@ test "ParsedArgs equality is source-agnostic" {
 ///|
 test "get_source returns FromConfig for config-sourced value" {
   let config_content = "{\"host\": \"config.example.com\"}"
-  @fs.write_string_to_file(".test_vs_config.json", config_content)
+  let config_file = ".test_vs_config_get_src.json"
+  @fs.write_string_to_file(config_file, config_content)
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("host", long="host"))
-    .with_config_file(".test_vs_config.json")
-  let result = p.parse([])
-  @fs.remove_file(".test_vs_config.json")
+    .with_config_file(config_file)
+  let result = try {
+    p.parse([])
+  } catch {
+    e => {
+      @fs.remove_file(config_file)
+      raise e
+    }
+  }
+  @fs.remove_file(config_file)
   inspect(result.get_source("host"), content="Some(FromConfig)")
   inspect(result.get_string("host"), content="Some(\"config.example.com\")")
 }
