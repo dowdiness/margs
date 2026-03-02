@@ -335,7 +335,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
             cmd.handler,
             combined_after,
             args,
-            cmd.commands.length() > 0,
+            cmd.spec.subcommands.length() > 0,
           )
           return true
         }
@@ -354,7 +354,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
           cmd.handler,
           combined_after,
           args,
-          cmd.commands.length() > 0,
+          cmd.spec.subcommands.length() > 0,
         )
         return true
       }
