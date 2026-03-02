@@ -53,11 +53,13 @@ test "TypedHandle::require raises InvalidValue when stored default fails custom 
   let p = parser("test", builder=fn(args) { args })
   let (p, url_h) = p.add(
     "url",
-    custom_option(
-      long="url",
-      default="not-a-url",
-      parse=fn(s) { if s.has_prefix("http") { Some(s) } else { None } },
-    ),
+    custom_option(long="url", default="not-a-url", parse=fn(s) {
+      if s.has_prefix("http") {
+        Some(s)
+      } else {
+        None
+      }
+    }),
   )
   let args = p.parse([])
   let r : Result[String, Error] = Ok(url_h.require(args)) catch { e => Err(e) }
@@ -111,15 +113,12 @@ test "custom_option returns typed value for valid CLI input" {
   let p = parser("test", builder=fn(args) { args })
   let (p, port_h) = p.add(
     "port",
-    custom_option(
-      long="port",
-      parse=fn(s) {
-        match (try? @strconv.parse_int(s)) {
-          Ok(n) => if n > 0 && n <= 65535 { Some(n) } else { None }
-          Err(_) => None
-        }
-      },
-    ),
+    custom_option(long="port", parse=fn(s) {
+      match (try? @strconv.parse_int(s)) {
+        Ok(n) => if n > 0 && n <= 65535 { Some(n) } else { None }
+        Err(_) => None
+      }
+    }),
   )
   let args = p.parse(["--port", "8080"])
   inspect(port_h.get(args), content="Some(8080)")
@@ -130,10 +129,13 @@ test "custom_option validator rejects invalid CLI input at parse time" {
   let p = parser("test", builder=fn(args) { args })
   let (p, _) = p.add(
     "url",
-    custom_option(
-      long="url",
-      parse=fn(s) { if s.has_prefix("http") { Some(s) } else { None } },
-    ),
+    custom_option(long="url", parse=fn(s) {
+      if s.has_prefix("http") {
+        Some(s)
+      } else {
+        None
+      }
+    }),
   )
   let result : Result[ParsedArgs, Error] = Ok(p.parse(["--url", "not-a-url"])) catch {
     e => Err(e)

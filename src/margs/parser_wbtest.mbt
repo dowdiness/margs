@@ -18,9 +18,14 @@ test "subcommand dispatches correctly" {
 
 ///|
 test "subcommand preserves parent options" {
-  let sub = subcommand("build", options=[build_spec("release", flag(long="release"))])
+  let sub = subcommand("build", options=[
+    build_spec("release", flag(long="release")),
+  ])
   let p = parser("test", description="test parser", builder=fn(args) { args })
-  let (p, config_h) = p.add("config", str_option(long="config", default="default.toml"))
+  let (p, config_h) = p.add(
+    "config",
+    str_option(long="config", default="default.toml"),
+  )
   let p = p.add_subcommand(sub)
   let result = p.parse(["--config", "my.toml", "build", "--release"])
   inspect(config_h.get(result), content="Some(\"my.toml\")")
@@ -30,7 +35,9 @@ test "subcommand preserves parent options" {
 
 ///|
 test "subcommand with parent required positional does not fail" {
-  let sub = subcommand("build", options=[build_spec("release", flag(long="release"))])
+  let sub = subcommand("build", options=[
+    build_spec("release", flag(long="release")),
+  ])
   let p = parser("test", description="test parser", builder=fn(args) { args })
   let p = p.add_positional(positional("file", required=true))
   let p = p.add_subcommand(sub)
@@ -55,7 +62,9 @@ test "subcommand option takes precedence over parent with same key" {
 
 ///|
 test "subcommand explicit value not overwritten by parent default" {
-  let sub = subcommand("build", options=[build_spec("output", str_option(long="output"))])
+  let sub = subcommand("build", options=[
+    build_spec("output", str_option(long="output")),
+  ])
   let p = parser("test", description="test parser", builder=fn(args) { args })
   let (p, _) = p.add("output", str_option(long="output", default="default/out"))
   let p = p.add_subcommand(sub)
@@ -65,7 +74,9 @@ test "subcommand explicit value not overwritten by parent default" {
 
 ///|
 test "subcommand still works when positionals also defined" {
-  let sub = subcommand("build", options=[build_spec("release", flag(long="release"))])
+  let sub = subcommand("build", options=[
+    build_spec("release", flag(long="release")),
+  ])
   let p = parser("test", description="test parser", builder=fn(args) { args })
   let p = p.add_positional(positional("file"))
   let p = p.add_subcommand(sub)

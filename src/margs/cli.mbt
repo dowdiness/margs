@@ -79,7 +79,7 @@ pub fn command(
   name : String,
   description? : String = "",
   aliases? : Array[String] = [],
-  handler? : ((ParsedArgs) -> Unit raise Error),
+  handler? : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
   {
     spec: subcommand(name, description~, aliases~),
@@ -188,10 +188,7 @@ pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
 }
 
 ///|
-fn CliCommand::add_option(
-  self : CliCommand,
-  opt : OptionSpec,
-) -> CliCommand {
+fn CliCommand::add_option(self : CliCommand, opt : OptionSpec) -> CliCommand {
   { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
 }
 
@@ -312,10 +309,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
   ) -> Unit raise ParseError {
     match handler {
       Some(h) => run_with_hooks(combined_before, h, combined_after, args)
-      None =>
-        if has_subcommands {
-          raise HelpRequested("")
-        }
+      None => if has_subcommands { raise HelpRequested("") }
     }
   }
 

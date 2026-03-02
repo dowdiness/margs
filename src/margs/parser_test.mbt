@@ -310,7 +310,10 @@ test "double dash stops option parsing" {
 ///|
 test "validator rejects invalid value" {
   let p = parser("test", description="test parser", builder=fn(args) { args })
-  let (p, _) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n < 65536 }))
+  let (p, _) = p.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n < 65536 }),
+  )
   let result : Result[ParsedArgs, Error] = Ok(p.parse(["--port", "99999"])) catch {
     e => Err(e)
   }
@@ -320,7 +323,10 @@ test "validator rejects invalid value" {
 ///|
 test "validator accepts valid value" {
   let p = parser("test", description="test parser", builder=fn(args) { args })
-  let (p, port_h) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n < 65536 }))
+  let (p, port_h) = p.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n < 65536 }),
+  )
   let result = p.parse(["--port", "8080"])
   inspect(port_h.get(result), content="Some(8080)")
 }
@@ -426,7 +432,10 @@ test "unknown token raises error when only subcommands and no positionals" {
 ///|
 test "full parser scenario" {
   let p = parser("test", description="test parser", builder=fn(args) { args })
-  let (p, output_h) = p.add("output", str_option(short='o', long="output", default="a.out"))
+  let (p, output_h) = p.add(
+    "output",
+    str_option(short='o', long="output", default="a.out"),
+  )
   let (p, jobs_h) = p.add("jobs", int_option(short='j', long="jobs", default=1))
   let (p, verbose_h) = p.add("verbose", flag(short='v', long="verbose"))
   let p = p.add_positional(positional("file"))

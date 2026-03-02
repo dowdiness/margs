@@ -14,7 +14,17 @@ pub fn str_option(
 ) -> OptionBuilder[String] {
   {
     build_spec: fn(key) {
-      StringOption({ key, short, long, help, metavar, required, default, env, validator })
+      StringOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
     },
     extract: fn(args, key) { args.get_string(key) },
   }
@@ -34,7 +44,17 @@ pub fn int_option(
 ) -> OptionBuilder[Int] {
   {
     build_spec: fn(key) {
-      IntOption({ key, short, long, help, metavar, required, default, env, validator })
+      IntOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
     },
     extract: fn(args, key) { args.get_int(key) },
   }
@@ -54,7 +74,17 @@ pub fn double_option(
 ) -> OptionBuilder[Double] {
   {
     build_spec: fn(key) {
-      DoubleOption({ key, short, long, help, metavar, required, default, env, validator })
+      DoubleOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
     },
     extract: fn(args, key) { args.get_double(key) },
   }

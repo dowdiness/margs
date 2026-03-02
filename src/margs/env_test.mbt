@@ -5,7 +5,10 @@ test "env var provides default for string option" {
   @sys.set_env_var("TEST_HOST", "example.com")
 
   let p = parser("test", builder=fn(args) { args })
-  let (p, host_h) = p.add("host", str_option(env="TEST_HOST", default="localhost"))
+  let (p, host_h) = p.add(
+    "host",
+    str_option(env="TEST_HOST", default="localhost"),
+  )
 
   let result = p.parse([])
   inspect(host_h.get(result), content="Some(\"example.com\")")
@@ -42,7 +45,10 @@ test "env var overrides default for string option" {
 ///|
 test "uses default when env var not set" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, host_h) = p.add("host", str_option(env="NONEXISTENT_VAR", default="localhost"))
+  let (p, host_h) = p.add(
+    "host",
+    str_option(env="NONEXISTENT_VAR", default="localhost"),
+  )
 
   let result = p.parse([])
   inspect(host_h.get(result), content="Some(\"localhost\")")
@@ -92,7 +98,10 @@ test "invalid double in env var falls back to default" {
   @sys.set_env_var("TEST_RATIO", "not-a-number")
 
   let p = parser("test", builder=fn(args) { args })
-  let (p, ratio_h) = p.add("ratio", double_option(env="TEST_RATIO", default=1.5))
+  let (p, ratio_h) = p.add(
+    "ratio",
+    double_option(env="TEST_RATIO", default=1.5),
+  )
 
   let result = p.parse([])
   inspect(ratio_h.get(result), content="Some(1.5)")
@@ -105,7 +114,10 @@ test "invalid required double in env var fails parse-time validation" {
   @sys.set_env_var("TEST_REQUIRED_RATIO", "not-a-number")
 
   let p = parser("test", builder=fn(args) { args })
-  let (p, _) = p.add("ratio", double_option(env="TEST_REQUIRED_RATIO", required=true))
+  let (p, _) = p.add(
+    "ratio",
+    double_option(env="TEST_REQUIRED_RATIO", required=true),
+  )
 
   let caught = Ref::new(false)
   let _ : Result[ParsedArgs, Unit] = Ok(p.parse([])) catch {

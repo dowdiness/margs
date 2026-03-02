@@ -120,11 +120,26 @@ test "full precedence chain: cli > env > config > default" {
   @sys.set_env_var("TEST_EPSILON", "2.5")
 
   let p = parser("test", builder=fn(args) { args })
-  let (p, alpha_h) = p.add("alpha", str_option(long="alpha", env="TEST_ALPHA", default="default"))
-  let (p, beta_h) = p.add("beta", str_option(long="beta", env="TEST_BETA", default="default"))
-  let (p, gamma_h) = p.add("gamma", str_option(long="gamma", env="TEST_GAMMA", default="default"))
-  let (p, delta_h) = p.add("delta", str_option(long="delta", env="TEST_DELTA", default="default"))
-  let (p, epsilon_h) = p.add("epsilon", double_option(long="epsilon", env="TEST_EPSILON", default=0.5))
+  let (p, alpha_h) = p.add(
+    "alpha",
+    str_option(long="alpha", env="TEST_ALPHA", default="default"),
+  )
+  let (p, beta_h) = p.add(
+    "beta",
+    str_option(long="beta", env="TEST_BETA", default="default"),
+  )
+  let (p, gamma_h) = p.add(
+    "gamma",
+    str_option(long="gamma", env="TEST_GAMMA", default="default"),
+  )
+  let (p, delta_h) = p.add(
+    "delta",
+    str_option(long="delta", env="TEST_DELTA", default="default"),
+  )
+  let (p, epsilon_h) = p.add(
+    "epsilon",
+    double_option(long="epsilon", env="TEST_EPSILON", default=0.5),
+  )
   let p = p.with_config_file(".test_config5.json")
 
   let result = p.parse(["--gamma", "from_cli", "--epsilon", "3.5"])

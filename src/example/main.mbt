@@ -11,24 +11,31 @@
 ///|
 fn build_app() -> @margs.Cli {
   let cli = @margs.create_cli(
-    "demo",
-    description="A demo project tool built with margs",
-    version="1.0.0",
-  )
-  .add_example("demo serve --port 8080", "Start server on port 8080")
-  .add_example("demo build -o dist -t wasm", "Build for wasm target")
-  .add_example("demo init my-app", "Create a new project")
-  .add_example("demo project deploy --env staging", "Deploy a project")
+      "demo",
+      description="A demo project tool built with margs",
+      version="1.0.0",
+    )
+    .add_example("demo serve --port 8080", "Start server on port 8080")
+    .add_example("demo build -o dist -t wasm", "Build for wasm target")
+    .add_example("demo init my-app", "Create a new project")
+    .add_example("demo project deploy --env staging", "Deploy a project")
 
   let (cli, verbose) = cli.add(
     "verbose",
     @margs.flag(short='v', long="verbose", help="Enable verbose output"),
   )
 
-  let serve = @margs.command("serve", description="Start development server", aliases=["s"])
+  let serve = @margs.command("serve", description="Start development server", aliases=[
+    "s",
+  ])
   let (serve, host) = serve.add(
     "host",
-    @margs.str_option(short='H', long="host", help="Host to bind to", default="localhost"),
+    @margs.str_option(
+      short='H',
+      long="host",
+      help="Host to bind to",
+      default="localhost",
+    ),
   )
   let (serve, port) = serve.add(
     "port",
@@ -50,14 +57,27 @@ fn build_app() -> @margs.Cli {
     println("Server listening on http://\{h}:\{p}")
   })
 
-  let build = @margs.command("build", description="Build the project", aliases=["b"])
+  let build = @margs.command("build", description="Build the project", aliases=[
+    "b",
+  ])
   let (build, output) = build.add(
     "output",
-    @margs.str_option(short='o', long="output", help="Output directory", default="dist", metavar="DIR"),
+    @margs.str_option(
+      short='o',
+      long="output",
+      help="Output directory",
+      default="dist",
+      metavar="DIR",
+    ),
   )
   let (build, targets) = build.add(
     "target",
-    @margs.str_list_option(short='t', long="target", help="Build target", metavar="TARGET"),
+    @margs.str_list_option(
+      short='t',
+      long="target",
+      help="Build target",
+      metavar="TARGET",
+    ),
   )
   let build = build.set_handler(handler=fn(args) {
     let v = verbose.get(args).unwrap_or(false)
@@ -73,8 +93,14 @@ fn build_app() -> @margs.Cli {
     println("Build complete!")
   })
 
-  let init_cmd = @margs.command("init", description="Initialize a new project", aliases=["i"])
-  let init_cmd = init_cmd.add_positional(@margs.positional("name", help="Project name"))
+  let init_cmd = @margs.command(
+    "init",
+    description="Initialize a new project",
+    aliases=["i"],
+  )
+  let init_cmd = init_cmd.add_positional(
+    @margs.positional("name", help="Project name"),
+  )
   let init_cmd = init_cmd.set_handler(handler=fn(args) {
     let v = verbose.get(args).unwrap_or(false)
     let name = match args.get_positional(0) {
@@ -90,10 +116,17 @@ fn build_app() -> @margs.Cli {
     println("Done!")
   })
 
-  let deploy = @margs.command("deploy", description="Deploy the project", aliases=["d"])
+  let deploy = @margs.command("deploy", description="Deploy the project", aliases=[
+    "d",
+  ])
   let (deploy, env_opt) = deploy.add(
     "env",
-    @margs.str_option(short='e', long="env", help="Deployment environment", default="prod"),
+    @margs.str_option(
+      short='e',
+      long="env",
+      help="Deployment environment",
+      default="prod",
+    ),
   )
   let deploy = deploy.set_handler(handler=fn(args) {
     let env = env_opt.get(args).unwrap_or("prod")
@@ -101,7 +134,10 @@ fn build_app() -> @margs.Cli {
     println("Deployment complete!")
   })
 
-  let project = @margs.command("project", description="Manage the current project")
+  let project = @margs.command(
+    "project",
+    description="Manage the current project",
+  )
   let project = project.set_handler(handler=fn(_) { () })
   let project = project.add_command(deploy)
 

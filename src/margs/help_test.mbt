@@ -2,14 +2,18 @@
 
 ///|
 test "simple parser help output" {
-  let p = parser(
-    "myapp",
-    description="A sample application",
-    builder=fn(args) { args },
-  )
+  let p = parser("myapp", description="A sample application", builder=fn(args) {
+    args
+  })
   let p = p.with_version("1.0.0")
-  let (p, _) = p.add("output", str_option(short='o', long="output", help="Output file"))
-  let (p, _) = p.add("verbose", flag(short='v', long="verbose", help="Enable verbose output"))
+  let (p, _) = p.add(
+    "output",
+    str_option(short='o', long="output", help="Output file"),
+  )
+  let (p, _) = p.add(
+    "verbose",
+    flag(short='v', long="verbose", help="Enable verbose output"),
+  )
   let help = generate_help(p)
   // Check description is present
   inspect(help.contains("A sample application"), content="true")
@@ -34,7 +38,9 @@ test "simple parser help output" {
 test "help with positionals" {
   let p = parser("cp", description="Copy files", builder=fn(args) { args })
   let p = p.add_positional(positional("src", help="Source file"))
-  let p = p.add_positional(positional("dest", help="Destination", required=false))
+  let p = p.add_positional(
+    positional("dest", help="Destination", required=false),
+  )
   let help = generate_help(p)
   // Required positional shown with <> in usage
   inspect(help.contains("Usage: cp <src> [dest]"), content="true")
@@ -46,8 +52,12 @@ test "help with positionals" {
 
 ///|
 test "help with subcommands" {
-  let p = parser("cargo", description="Package manager", builder=fn(args) { args })
-  let p = p.add_subcommand(subcommand("build", description="Compile the project"))
+  let p = parser("cargo", description="Package manager", builder=fn(args) {
+    args
+  })
+  let p = p.add_subcommand(
+    subcommand("build", description="Compile the project"),
+  )
   let p = p.add_subcommand(subcommand("test", description="Run the tests"))
   let help = generate_help(p)
   // Usage shows <COMMAND>
@@ -63,8 +73,14 @@ test "help with subcommands" {
 ///|
 test "help with metavar" {
   let p = parser("serve", builder=fn(args) { args })
-  let (p, _) = p.add("port", int_option(short='p', long="port", help="Port number", metavar="PORT"))
-  let (p, _) = p.add("ratio", double_option(short='r', long="ratio", help="Ratio", metavar="NUM"))
+  let (p, _) = p.add(
+    "port",
+    int_option(short='p', long="port", help="Port number", metavar="PORT"),
+  )
+  let (p, _) = p.add(
+    "ratio",
+    double_option(short='r', long="ratio", help="Ratio", metavar="NUM"),
+  )
   let help = generate_help(p)
   inspect(help.contains("<PORT>"), content="true")
   inspect(help.contains("--ratio <NUM>"), content="true")
@@ -109,7 +125,10 @@ test "subcommand help includes version when enabled" {
 ///|
 test "port validator rejects invalid port" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, _) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
+  let (p, _) = p.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }),
+  )
   let result : Result[ParsedArgs, Error] = Ok(p.parse(["--port", "0"])) catch {
     e => Err(e)
   }
@@ -119,7 +138,10 @@ test "port validator rejects invalid port" {
 ///|
 test "port validator accepts valid port" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, port_h) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
+  let (p, port_h) = p.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }),
+  )
   let result = p.parse(["--port", "8080"])
   inspect(port_h.get(result), content="Some(8080)")
 }

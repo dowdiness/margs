@@ -2,7 +2,9 @@
 
 ///|
 test "generate metadata for simple parser with version" {
-  let p = parser("myapp", description="My application", builder=fn(args) { args })
+  let p = parser("myapp", description="My application", builder=fn(args) {
+    args
+  })
   let p = p.with_version("1.0.0")
   let (p, _) = p.add("host", str_option(long="host", help="Server hostname"))
   let (p, _) = p.add("verbose", flag(short='v', help="Enable verbose output"))
@@ -39,7 +41,10 @@ test "generate metadata includes all option types" {
 ///|
 test "generate metadata includes short and long flags" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, _) = p.add("output", str_option(short='o', long="output", help="Output file"))
+  let (p, _) = p.add(
+    "output",
+    str_option(short='o', long="output", help="Output file"),
+  )
 
   let meta = generate_metadata(p)
 
@@ -50,8 +55,14 @@ test "generate metadata includes short and long flags" {
 ///|
 test "generate metadata includes required flags" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, _) = p.add("required-field", str_option(long="required", required=true))
-  let (p, _) = p.add("optional-field", str_option(long="optional", required=false))
+  let (p, _) = p.add(
+    "required-field",
+    str_option(long="required", required=true),
+  )
+  let (p, _) = p.add(
+    "optional-field",
+    str_option(long="optional", required=false),
+  )
 
   let meta = generate_metadata(p)
 
@@ -66,8 +77,12 @@ test "generate metadata includes required flags" {
 ///|
 test "generate metadata with positional arguments" {
   let p = parser("test", builder=fn(args) { args })
-  let p = p.add_positional(positional("input", help="Input file", required=true))
-  let p = p.add_positional(positional("output", help="Output file", required=false))
+  let p = p.add_positional(
+    positional("input", help="Input file", required=true),
+  )
+  let p = p.add_positional(
+    positional("output", help="Output file", required=false),
+  )
 
   let meta = generate_metadata(p)
 
@@ -116,7 +131,10 @@ test "generate metadata with nested subcommands" {
 ///|
 test "generate metadata escapes JSON special characters" {
   let p = parser("test", builder=fn(args) { args })
-  let (p, _) = p.add("field", str_option(help="A \"quoted\" description with\nnewlines"))
+  let (p, _) = p.add(
+    "field",
+    str_option(help="A \"quoted\" description with\nnewlines"),
+  )
 
   let meta = generate_metadata(p)
 
