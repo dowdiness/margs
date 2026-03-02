@@ -282,13 +282,13 @@ test "pad_right exact width" {
 
 ///|
 test "option_key extracts key from StringOption" {
-  let opt = str_option("name", long="name")
+  let opt = build_spec("name", str_option(long="name"))
   inspect(option_key(opt), content="name")
 }
 
 ///|
 test "option_key extracts key from BoolFlag" {
-  let opt = flag("verbose", short='v')
+  let opt = build_spec("verbose", flag(short='v'))
   inspect(option_key(opt), content="verbose")
 }
 

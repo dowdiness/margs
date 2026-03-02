@@ -10,7 +10,7 @@
 
 ///|
 fn build_app() -> @margs.Cli {
-  @margs.create_cli(
+  let cli = @margs.create_cli(
     "demo",
     description="A demo project tool built with margs",
     version="1.0.0",
@@ -19,128 +19,97 @@ fn build_app() -> @margs.Cli {
   .add_example("demo build -o dist -t wasm", "Build for wasm target")
   .add_example("demo init my-app", "Create a new project")
   .add_example("demo project deploy --env staging", "Deploy a project")
-  .add_option(@margs.verbose_flag())
-  .add_command(
-    @margs.command(
-      "serve",
-      description="Start development server",
-      aliases=["s"],
-      handler=fn(args) {
-        let verbose = args.get_bool("verbose")
-        let host = match args.get_string("host") {
-          Some(h) => h
-          None => "localhost"
-        }
-        let port = match args.get_int("port") {
-          Some(p) => p
-          None => 3000
-        }
-        if verbose {
-          println("[verbose] Configuring server...")
-        }
-        println("Server listening on http://\{host}:\{port}")
-      },
-    )
-    .add_option(
-      @margs.str_option(
-        "host",
-        short='H',
-        long="host",
-        help="Host to bind to",
-        default="localhost",
-      ),
-    )
-    .add_option(@margs.port_option(default=3000)),
+
+  let (cli, verbose) = cli.add(
+    "verbose",
+    @margs.flag(short='v', long="verbose", help="Enable verbose output"),
   )
-  .add_command(
-    @margs.command("build", description="Build the project", aliases=["b"], handler=fn(
-      args,
-    ) {
-      let verbose = args.get_bool("verbose")
-      let output = match args.get_string("output") {
-        Some(o) => o
-        None => "dist"
-      }
-      let targets = args.get_string_list("target")
-      if verbose {
-        println("[verbose] Starting build...")
-      }
-      println("Building project -> \{output}/")
-      for target in targets {
-        println("  target: \{target}")
-      }
-      println("Build complete!")
-    })
-    .add_option(
-      @margs.str_option(
-        "output",
-        short='o',
-        long="output",
-        help="Output directory",
-        default="dist",
-        metavar="DIR",
-      ),
-    )
-    .add_option(
-      @margs.str_list_option(
-        "target",
-        short='t',
-        long="target",
-        help="Build target",
-        metavar="TARGET",
-      ),
+
+  let serve = @margs.command("serve", description="Start development server", aliases=["s"])
+  let (serve, host) = serve.add(
+    "host",
+    @margs.str_option(short='H', long="host", help="Host to bind to", default="localhost"),
+  )
+  let (serve, port) = serve.add(
+    "port",
+    @margs.int_option(
+      short='p',
+      long="port",
+      help="Port number",
+      default=3000,
+      validator=fn(n) { n > 0 && n <= 65535 },
     ),
   )
-  .add_command(
-    @margs.command(
-      "init",
-      description="Initialize a new project",
-      aliases=["i"],
-      handler=fn(args) {
-        let verbose = args.get_bool("verbose")
-        let name = match args.get_positional(0) {
-          Some(n) => n
-          None => "my-project"
-        }
-        if verbose {
-          println("[verbose] Scaffolding project...")
-        }
-        println("Initializing project '\{name}'")
-        println("  Created \{name}/moon.mod.json")
-        println("  Created \{name}/src/main/main.mbt")
-        println("Done!")
-      },
-    ).add_positional(@margs.positional("name", help="Project name")),
+  let serve = serve.set_handler(handler=fn(args) {
+    let v = verbose.get(args).unwrap_or(false)
+    let h = host.get(args).unwrap_or("localhost")
+    let p = port.get(args).unwrap_or(3000)
+    if v {
+      println("[verbose] Configuring server...")
+    }
+    println("Server listening on http://\{h}:\{p}")
+  })
+
+  let build = @margs.command("build", description="Build the project", aliases=["b"])
+  let (build, output) = build.add(
+    "output",
+    @margs.str_option(short='o', long="output", help="Output directory", default="dist", metavar="DIR"),
   )
-  .add_command(
-    @margs.command("project", description="Manage the current project", handler=fn(
-      _,
-    ) {
-      ()
-    }).add_command(
-      @margs.command(
-        "deploy",
-        description="Deploy the project",
-        aliases=["d"],
-        handler=fn(args) {
-          let env = match args.get_string("env") {
-            Some(value) => value
-            None => "prod"
-          }
-          println("Deploying to \{env}...")
-          println("Deployment complete!")
-        },
-      ).add_option(
-        @margs.str_option(
-          "env",
-          short='e',
-          long="env",
-          help="Deployment environment",
-          default="prod",
-        ),
-      ),
-    ),
+  let (build, targets) = build.add(
+    "target",
+    @margs.str_list_option(short='t', long="target", help="Build target", metavar="TARGET"),
   )
+  let build = build.set_handler(handler=fn(args) {
+    let v = verbose.get(args).unwrap_or(false)
+    let o = output.get(args).unwrap_or("dist")
+    let ts = targets.get(args).unwrap_or([])
+    if v {
+      println("[verbose] Starting build...")
+    }
+    println("Building project -> \{o}/")
+    for target in ts {
+      println("  target: \{target}")
+    }
+    println("Build complete!")
+  })
+
+  let init_cmd = @margs.command("init", description="Initialize a new project", aliases=["i"])
+  let init_cmd = init_cmd.add_positional(@margs.positional("name", help="Project name"))
+  let init_cmd = init_cmd.set_handler(handler=fn(args) {
+    let v = verbose.get(args).unwrap_or(false)
+    let name = match args.get_positional(0) {
+      Some(n) => n
+      None => "my-project"
+    }
+    if v {
+      println("[verbose] Scaffolding project...")
+    }
+    println("Initializing project '\{name}'")
+    println("  Created \{name}/moon.mod.json")
+    println("  Created \{name}/src/main/main.mbt")
+    println("Done!")
+  })
+
+  let deploy = @margs.command("deploy", description="Deploy the project", aliases=["d"])
+  let (deploy, env_opt) = deploy.add(
+    "env",
+    @margs.str_option(short='e', long="env", help="Deployment environment", default="prod"),
+  )
+  let deploy = deploy.set_handler(handler=fn(args) {
+    let env = env_opt.get(args).unwrap_or("prod")
+    println("Deploying to \{env}...")
+    println("Deployment complete!")
+  })
+
+  let project = @margs.command("project", description="Manage the current project")
+  let project = project.set_handler(handler=fn(_) { () })
+  let project = project.add_command(deploy)
+
+  cli
+  .add_command(serve)
+  .add_command(build)
+  .add_command(init_cmd)
+  .add_command(project)
 }
 
 ///|

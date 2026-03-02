@@ -1,10 +1,24 @@
 // High-level CLI wrapper API built on top of Parser
 
 ///|
-/// A command with its spec and handler.
+/// Create a bare subcommand spec for low-level parser construction.
+/// For the high-level API use command() instead.
+pub fn subcommand(
+  name : String,
+  description? : String = "",
+  aliases? : Array[String] = [],
+  options? : Array[OptionSpec] = [],
+  positionals? : Array[PositionalSpec] = [],
+  subcommands? : Array[SubcommandSpec] = [],
+) -> SubcommandSpec {
+  { name, description, aliases, options, positionals, subcommands }
+}
+
+///|
+/// A command with its spec and optional handler.
 pub struct CliCommand {
   spec : SubcommandSpec
-  handler : (ParsedArgs) -> Unit raise Error
+  handler : ((ParsedArgs) -> Unit raise Error)?
   commands : Array[CliCommand]
   before_hooks : Array[(ParsedArgs) -> Unit raise Error]
   after_hooks : Array[(ParsedArgs) -> Unit raise Error]
@@ -55,12 +69,17 @@ pub fn create_cli(
 }
 
 ///|
-/// Create a command with a handler.
+/// Create a command. The handler can be provided now or set later with set_handler().
+/// Providing handler up-front: command("serve", handler=fn(args) { ... })
+/// Deferred pattern (needed when options are added after construction):
+///   let cmd = command("serve", ...)
+///   let (cmd, port_h) = cmd.add("port", int_option(...))
+///   let cmd = cmd.set_handler(handler=fn(args) { port_h.get(args) ... })
 pub fn command(
   name : String,
   description? : String = "",
   aliases? : Array[String] = [],
-  handler~ : (ParsedArgs) -> Unit raise Error,
+  handler? : ((ParsedArgs) -> Unit raise Error),
 ) -> CliCommand {
   {
     spec: subcommand(name, description~, aliases~),
@@ -233,7 +252,7 @@ pub fn CliCommand::set_handler(
   self : CliCommand,
   handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
-  { ..self, handler, }
+  { ..self, handler: Some(handler) }
 }
 
 ///|
@@ -286,6 +305,22 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
     false
   }
 
+  fn run_cmd(
+    combined_before : Array[(ParsedArgs) -> Unit raise Error],
+    handler : ((ParsedArgs) -> Unit raise Error)?,
+    combined_after : Array[(ParsedArgs) -> Unit raise Error],
+    args : ParsedArgs,
+    has_subcommands : Bool,
+  ) -> Unit raise ParseError {
+    match handler {
+      Some(h) => run_with_hooks(combined_before, h, combined_after, args)
+      None =>
+        if has_subcommands {
+          raise HelpRequested("")
+        }
+    }
+  }
+
   fn dispatch(
     args : ParsedArgs,
     commands : Array[CliCommand],
@@ -303,7 +338,13 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         let combined_before = before_hooks + cmd.before_hooks
         let combined_after = cmd.after_hooks + after_hooks
         if index == path.length() - 1 {
-          run_with_hooks(combined_before, cmd.handler, combined_after, args)
+          run_cmd(
+            combined_before,
+            cmd.handler,
+            combined_after,
+            args,
+            cmd.commands.length() > 0,
+          )
           return true
         }
         let child = dispatch(
@@ -316,7 +357,13 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         if child {
           return true
         }
-        run_with_hooks(combined_before, cmd.handler, combined_after, args)
+        run_cmd(
+          combined_before,
+          cmd.handler,
+          combined_after,
+          args,
+          cmd.commands.length() > 0,
+        )
         return true
       }
     }

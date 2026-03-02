@@ -5,12 +5,12 @@ test "cli dispatches command handler" {
   let called = Ref::new(false)
   let seen_port = Ref::new(0)
 
-  let cli = create_cli("demo").add_command(
-    command("serve", handler=fn(args) {
-      called.val = true
-      seen_port.val = args.get_int("port").unwrap_or(0)
-    }).add_option(port_option()),
-  )
+  let serve = command("serve", handler=fn(args) {
+    called.val = true
+    seen_port.val = args.get_int("port").unwrap_or(0)
+  })
+  let (serve, _) = serve.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
+  let cli = create_cli("demo").add_command(serve)
 
   cli.parse(["serve", "--port", "8080"])
   inspect(called.val, content="true")
@@ -22,12 +22,12 @@ test "global option is visible in command handler" {
   let seen_verbose = Ref::new(false)
 
   let cli = create_cli("demo")
-    .add_option(verbose_flag())
-    .add_command(
-      command("serve", handler=fn(args) {
-        seen_verbose.val = args.get_bool("verbose")
-      }),
-    )
+  let (cli, _) = cli.add("verbose", flag(short='v', long="verbose", help="Enable verbose output"))
+  let cli = cli.add_command(
+    command("serve", handler=fn(args) {
+      seen_verbose.val = args.get_bool("verbose")
+    }),
+  )
 
   cli.parse(["-v", "serve"])
   inspect(seen_verbose.val, content="true")
@@ -215,9 +215,9 @@ test "run_for_test returns command help with success exit" {
 
 ///|
 test "run_for_test maps parse failures to exit code and output" {
-  let cli = create_cli("demo").add_command(
-    command("serve", handler=fn(_) { () }).add_option(port_option()),
-  )
+  let serve = command("serve", handler=fn(_) { () })
+  let (serve, _) = serve.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
+  let cli = create_cli("demo").add_command(serve)
   let result = cli.run_for_test(["serve", "--port", "abc"])
   inspect(result.exit_code.code(), content="3")
   inspect(

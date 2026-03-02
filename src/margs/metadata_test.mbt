@@ -2,12 +2,10 @@
 
 ///|
 test "generate metadata for simple parser with version" {
-  let p = parser("myapp", description="My application", builder=fn(args) {
-      args
-    })
-    .with_version("1.0.0")
-    .add_option(str_option("host", long="host", help="Server hostname"))
-    .add_option(flag("verbose", short='v', help="Enable verbose output"))
+  let p = parser("myapp", description="My application", builder=fn(args) { args })
+  let p = p.with_version("1.0.0")
+  let (p, _) = p.add("host", str_option(long="host", help="Server hostname"))
+  let (p, _) = p.add("verbose", flag(short='v', help="Enable verbose output"))
 
   let meta = generate_metadata(p)
 
@@ -23,11 +21,11 @@ test "generate metadata for simple parser with version" {
 ///|
 test "generate metadata includes all option types" {
   let p = parser("test", builder=fn(args) { args })
-    .add_option(str_option("name", short='n', help="Name value"))
-    .add_option(int_option("port", short='p', help="Port number"))
-    .add_option(double_option("ratio", short='r', help="Ratio"))
-    .add_option(flag("debug", short='d', help="Debug mode"))
-    .add_option(str_list_option("tags", short='t', help="Tag list"))
+  let (p, _) = p.add("name", str_option(short='n', help="Name value"))
+  let (p, _) = p.add("port", int_option(short='p', help="Port number"))
+  let (p, _) = p.add("ratio", double_option(short='r', help="Ratio"))
+  let (p, _) = p.add("debug", flag(short='d', help="Debug mode"))
+  let (p, _) = p.add("tags", str_list_option(short='t', help="Tag list"))
 
   let meta = generate_metadata(p)
 
@@ -40,9 +38,8 @@ test "generate metadata includes all option types" {
 
 ///|
 test "generate metadata includes short and long flags" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("output", short='o', long="output", help="Output file"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("output", str_option(short='o', long="output", help="Output file"))
 
   let meta = generate_metadata(p)
 
@@ -53,8 +50,8 @@ test "generate metadata includes short and long flags" {
 ///|
 test "generate metadata includes required flags" {
   let p = parser("test", builder=fn(args) { args })
-    .add_option(str_option("required-field", long="required", required=true))
-    .add_option(str_option("optional-field", long="optional", required=false))
+  let (p, _) = p.add("required-field", str_option(long="required", required=true))
+  let (p, _) = p.add("optional-field", str_option(long="optional", required=false))
 
   let meta = generate_metadata(p)
 
@@ -69,8 +66,8 @@ test "generate metadata includes required flags" {
 ///|
 test "generate metadata with positional arguments" {
   let p = parser("test", builder=fn(args) { args })
-    .add_positional(positional("input", help="Input file", required=true))
-    .add_positional(positional("output", help="Output file", required=false))
+  let p = p.add_positional(positional("input", help="Input file", required=true))
+  let p = p.add_positional(positional("output", help="Output file", required=false))
 
   let meta = generate_metadata(p)
 
@@ -83,12 +80,12 @@ test "generate metadata with positional arguments" {
 ///|
 test "generate metadata with subcommands" {
   let p = parser("cli", builder=fn(args) { args })
-    .add_subcommand(
-      subcommand("serve", description="Start server", aliases=["s", "start"], options=[
-        int_option("port", short='p', help="Server port"),
-      ]),
-    )
-    .add_subcommand(subcommand("build", description="Build project"))
+  let p = p.add_subcommand(
+    subcommand("serve", description="Start server", aliases=["s", "start"], options=[
+      build_spec("port", int_option(short='p', help="Server port")),
+    ]),
+  )
+  let p = p.add_subcommand(subcommand("build", description="Build project"))
 
   let meta = generate_metadata(p)
 
@@ -101,7 +98,8 @@ test "generate metadata with subcommands" {
 
 ///|
 test "generate metadata with nested subcommands" {
-  let p = parser("cli", builder=fn(args) { args }).add_subcommand(
+  let p = parser("cli", builder=fn(args) { args })
+  let p = p.add_subcommand(
     subcommand("db", description="Database commands", subcommands=[
       subcommand("migrate", description="Run migrations"),
       subcommand("seed", description="Seed database"),
@@ -117,9 +115,8 @@ test "generate metadata with nested subcommands" {
 
 ///|
 test "generate metadata escapes JSON special characters" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("field", help="A \"quoted\" description with\nnewlines"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("field", str_option(help="A \"quoted\" description with\nnewlines"))
 
   let meta = generate_metadata(p)
 
@@ -142,9 +139,9 @@ test "generate metadata with empty parser" {
 ///|
 test "generate metadata includes metavar for value options" {
   let p = parser("test", builder=fn(args) { args })
-    .add_option(str_option("file", metavar="PATH"))
-    .add_option(int_option("count", metavar="NUM"))
-    .add_option(double_option("ratio", metavar="FLOAT"))
+  let (p, _) = p.add("file", str_option(metavar="PATH"))
+  let (p, _) = p.add("count", int_option(metavar="NUM"))
+  let (p, _) = p.add("ratio", double_option(metavar="FLOAT"))
 
   let meta = generate_metadata(p)
 

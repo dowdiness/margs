@@ -1,9 +1,8 @@
 // Builder API for constructing parsers and option specs
 
 ///|
-/// Create a string option spec
+/// Create a string option builder
 pub fn str_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -12,24 +11,18 @@ pub fn str_option(
   default? : String,
   env? : String,
   validator? : (String) -> Bool,
-) -> OptionSpec {
-  StringOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[String] {
+  {
+    build_spec: fn(key) {
+      StringOption({ key, short, long, help, metavar, required, default, env, validator })
+    },
+    extract: fn(args, key) { args.get_string(key) },
+  }
 }
 
 ///|
-/// Create an integer option spec
+/// Create an integer option builder
 pub fn int_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -38,24 +31,18 @@ pub fn int_option(
   default? : Int,
   env? : String,
   validator? : (Int) -> Bool,
-) -> OptionSpec {
-  IntOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[Int] {
+  {
+    build_spec: fn(key) {
+      IntOption({ key, short, long, help, metavar, required, default, env, validator })
+    },
+    extract: fn(args, key) { args.get_int(key) },
+  }
 }
 
 ///|
-/// Create a double option spec
+/// Create a double option builder
 pub fn double_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -64,44 +51,88 @@ pub fn double_option(
   default? : Double,
   env? : String,
   validator? : (Double) -> Bool,
-) -> OptionSpec {
-  DoubleOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[Double] {
+  {
+    build_spec: fn(key) {
+      DoubleOption({ key, short, long, help, metavar, required, default, env, validator })
+    },
+    extract: fn(args, key) { args.get_double(key) },
+  }
 }
 
 ///|
-/// Create a boolean flag spec
+/// Create a boolean flag builder
 pub fn flag(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
   default? : Bool = false,
   env? : String,
-) -> OptionSpec {
-  BoolFlag({ key, short, long, help, default, env })
+) -> OptionBuilder[Bool] {
+  {
+    build_spec: fn(key) { BoolFlag({ key, short, long, help, default, env }) },
+    extract: fn(args, key) { Some(args.get_bool(key)) },
+  }
 }
 
 ///|
-/// Create a string list option spec (can be specified multiple times)
+/// Create a string list option builder (can be specified multiple times)
 pub fn str_list_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
   metavar? : String = "VALUE",
   env? : String,
-) -> OptionSpec {
-  StringListOption({ key, short, long, help, metavar, env })
+) -> OptionBuilder[Array[String]] {
+  {
+    build_spec: fn(key) {
+      StringListOption({ key, short, long, help, metavar, env })
+    },
+    extract: fn(args, key) { Some(args.get_string_list(key)) },
+  }
+}
+
+///|
+/// Create a custom-typed option builder backed by a string option.
+/// `parse~` converts the raw string value to `T?`; returning `None` rejects the value.
+pub fn[T] custom_option(
+  short? : Char,
+  long? : String,
+  help? : String = "",
+  metavar? : String = "VALUE",
+  required? : Bool = false,
+  default? : String,
+  env? : String,
+  parse~ : (String) -> T?,
+) -> OptionBuilder[T] {
+  {
+    build_spec: fn(key) {
+      StringOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator: Some(fn(s) { parse(s) is Some(_) }),
+      })
+    },
+    extract: fn(args, key) {
+      match args.get_string(key) {
+        Some(s) => parse(s)
+        None => None
+      }
+    },
+  }
+}
+
+///|
+/// Pkg-private helper: materialise an OptionBuilder into an OptionSpec for a given key.
+/// Used internally by subcommand option arrays in tests.
+pub fn[T] build_spec(key : String, builder : OptionBuilder[T]) -> OptionSpec {
+  (builder.build_spec)(key)
 }
 
 ///|
@@ -204,17 +235,4 @@ pub fn[T] Parser::add_example(
   desc : String,
 ) -> Parser[T] {
   { ..self, examples: self.examples + [(cmd, desc)] }
-}
-
-///|
-/// Create a subcommand spec
-pub fn subcommand(
-  name : String,
-  description? : String = "",
-  aliases? : Array[String] = [],
-  options? : Array[OptionSpec] = [],
-  positionals? : Array[PositionalSpec] = [],
-  subcommands? : Array[SubcommandSpec] = [],
-) -> SubcommandSpec {
-  { name, description, aliases, options, positionals, subcommands }
 }

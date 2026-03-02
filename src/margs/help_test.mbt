@@ -2,16 +2,14 @@
 
 ///|
 test "simple parser help output" {
-  let p : Parser[ParsedArgs] = parser(
-      "myapp",
-      description="A sample application",
-      builder=fn(args) { args },
-    )
-    |> Parser::with_version("1.0.0")
-    |> Parser::with_options([
-      str_option("output", short='o', long="output", help="Output file"),
-      flag("verbose", short='v', long="verbose", help="Enable verbose output"),
-    ])
+  let p = parser(
+    "myapp",
+    description="A sample application",
+    builder=fn(args) { args },
+  )
+  let p = p.with_version("1.0.0")
+  let (p, _) = p.add("output", str_option(short='o', long="output", help="Output file"))
+  let (p, _) = p.add("verbose", flag(short='v', long="verbose", help="Enable verbose output"))
   let help = generate_help(p)
   // Check description is present
   inspect(help.contains("A sample application"), content="true")
@@ -34,15 +32,9 @@ test "simple parser help output" {
 
 ///|
 test "help with positionals" {
-  let p : Parser[ParsedArgs] = parser("cp", description="Copy files", builder=fn(
-      args,
-    ) {
-      args
-    })
-    |> Parser::add_positional(positional("src", help="Source file"))
-    |> Parser::add_positional(
-      positional("dest", help="Destination", required=false),
-    )
+  let p = parser("cp", description="Copy files", builder=fn(args) { args })
+  let p = p.add_positional(positional("src", help="Source file"))
+  let p = p.add_positional(positional("dest", help="Destination", required=false))
   let help = generate_help(p)
   // Required positional shown with <> in usage
   inspect(help.contains("Usage: cp <src> [dest]"), content="true")
@@ -54,15 +46,9 @@ test "help with positionals" {
 
 ///|
 test "help with subcommands" {
-  let p : Parser[ParsedArgs] = parser("cargo", description="Package manager", builder=fn(
-      args,
-    ) {
-      args
-    })
-    |> Parser::add_subcommand(
-      subcommand("build", description="Compile the project"),
-    )
-    |> Parser::add_subcommand(subcommand("test", description="Run the tests"))
+  let p = parser("cargo", description="Package manager", builder=fn(args) { args })
+  let p = p.add_subcommand(subcommand("build", description="Compile the project"))
+  let p = p.add_subcommand(subcommand("test", description="Run the tests"))
   let help = generate_help(p)
   // Usage shows <COMMAND>
   inspect(help.contains("Usage: cargo <COMMAND>"), content="true")
@@ -76,25 +62,9 @@ test "help with subcommands" {
 
 ///|
 test "help with metavar" {
-  let p : Parser[ParsedArgs] = parser("serve", builder=fn(args) { args })
-    |> Parser::add_option(
-      int_option(
-        "port",
-        short='p',
-        long="port",
-        help="Port number",
-        metavar="PORT",
-      ),
-    )
-    |> Parser::add_option(
-      double_option(
-        "ratio",
-        short='r',
-        long="ratio",
-        help="Ratio",
-        metavar="NUM",
-      ),
-    )
+  let p = parser("serve", builder=fn(args) { args })
+  let (p, _) = p.add("port", int_option(short='p', long="port", help="Port number", metavar="PORT"))
+  let (p, _) = p.add("ratio", double_option(short='r', long="ratio", help="Ratio", metavar="NUM"))
   let help = generate_help(p)
   inspect(help.contains("<PORT>"), content="true")
   inspect(help.contains("--ratio <NUM>"), content="true")
@@ -102,10 +72,8 @@ test "help with metavar" {
 
 ///|
 test "help with long-only option" {
-  let p : Parser[ParsedArgs] = parser("app", builder=fn(args) { args })
-    |> Parser::add_option(
-      str_option("config", long="config", help="Config file"),
-    )
+  let p = parser("app", builder=fn(args) { args })
+  let (p, _) = p.add("config", str_option(long="config", help="Config file"))
   let help = generate_help(p)
   inspect(help.contains("--config"), content="true")
   inspect(help.contains("Config file"), content="true")
@@ -117,8 +85,8 @@ test "subcommand help generation" {
     "build",
     description="Build the project",
     options=[
-      flag("release", long="release", help="Build in release mode"),
-      str_option("target", long="target", help="Target triple"),
+      build_spec("release", flag(long="release", help="Build in release mode")),
+      build_spec("target", str_option(long="target", help="Target triple")),
     ],
     positionals=[positional("path", help="Path to project", required=false)],
   )
@@ -139,27 +107,9 @@ test "subcommand help includes version when enabled" {
 }
 
 ///|
-test "verbose_flag helper" {
-  let opt = verbose_flag()
-  inspect(option_key(opt), content="verbose")
-  inspect(option_short(opt), content="Some('v')")
-  inspect(option_long(opt), content="Some(\"verbose\")")
-  inspect(option_help(opt), content="Enable verbose output")
-}
-
-///|
-test "quiet_flag helper" {
-  let opt = quiet_flag()
-  inspect(option_key(opt), content="quiet")
-  inspect(option_short(opt), content="Some('q')")
-  inspect(option_long(opt), content="Some(\"quiet\")")
-  inspect(option_help(opt), content="Suppress output")
-}
-
-///|
-test "port_option rejects invalid port" {
-  let p : Parser[ParsedArgs] = parser("test", builder=fn(args) { args })
-    |> Parser::add_option(port_option())
+test "port validator rejects invalid port" {
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
   let result : Result[ParsedArgs, Error] = Ok(p.parse(["--port", "0"])) catch {
     e => Err(e)
   }
@@ -167,34 +117,26 @@ test "port_option rejects invalid port" {
 }
 
 ///|
-test "port_option accepts valid port" {
-  let p : Parser[ParsedArgs] = parser("test", builder=fn(args) { args })
-    |> Parser::add_option(port_option())
+test "port validator accepts valid port" {
+  let p = parser("test", builder=fn(args) { args })
+  let (p, port_h) = p.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
   let result = p.parse(["--port", "8080"])
-  inspect(result.get_int("port"), content="Some(8080)")
+  inspect(port_h.get(result), content="Some(8080)")
 }
 
 // ===== Version and Examples tests =====
 
 ///|
 test "help includes version when set" {
-  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
-      args,
-    ) {
-      args
-    })
-    |> Parser::with_version("1.2.3")
+  let p = parser("myapp", description="Test app", builder=fn(args) { args })
+  let p = p.with_version("1.2.3")
   let help = generate_help(p)
   inspect(help.contains("Version: 1.2.3"), content="true")
 }
 
 ///|
 test "help excludes version when not set" {
-  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
-    args,
-  ) {
-    args
-  })
+  let p = parser("myapp", description="Test app", builder=fn(args) { args })
   let help = generate_help(p)
   inspect(help.contains("Version:"), content="false")
   inspect(help.contains("--version"), content="false")
@@ -202,13 +144,9 @@ test "help excludes version when not set" {
 
 ///|
 test "help includes examples when added" {
-  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
-      args,
-    ) {
-      args
-    })
-    |> Parser::add_example("myapp --port 8080", "Start on port 8080")
-    |> Parser::add_example("myapp --help", "Show help")
+  let p = parser("myapp", description="Test app", builder=fn(args) { args })
+  let p = p.add_example("myapp --port 8080", "Start on port 8080")
+  let p = p.add_example("myapp --help", "Show help")
   let help = generate_help(p)
   inspect(help.contains("Examples:"), content="true")
   inspect(help.contains("$ myapp --port 8080"), content="true")
@@ -219,24 +157,16 @@ test "help includes examples when added" {
 
 ///|
 test "help excludes examples section when none added" {
-  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
-    args,
-  ) {
-    args
-  })
+  let p = parser("myapp", description="Test app", builder=fn(args) { args })
   let help = generate_help(p)
   inspect(help.contains("Examples:"), content="false")
 }
 
 ///|
 test "help with version and examples together" {
-  let p : Parser[ParsedArgs] = parser("myapp", description="Test app", builder=fn(
-      args,
-    ) {
-      args
-    })
-    |> Parser::with_version("2.0.0")
-    |> Parser::add_example("myapp serve", "Start server")
+  let p = parser("myapp", description="Test app", builder=fn(args) { args })
+  let p = p.with_version("2.0.0")
+  let p = p.add_example("myapp serve", "Start server")
   let help = generate_help(p)
   inspect(help.contains("Version: 2.0.0"), content="true")
   inspect(help.contains("Examples:"), content="true")
