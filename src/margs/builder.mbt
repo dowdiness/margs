@@ -207,16 +207,24 @@ pub fn[T] Parser::add_option(self : Parser[T], opt : OptionSpec) -> Parser[T] {
 }
 
 ///|
+/// Shared helper: materialise a builder into its OptionSpec + TypedHandle pair.
+fn[T] resolve_builder(
+  key : String,
+  builder : OptionBuilder[T],
+) -> (OptionSpec, TypedHandle[T]) {
+  (
+    (builder.build_spec)(key),
+    { key, extract: fn(args) { (builder.extract)(args, key) } },
+  )
+}
+
+///|
 pub fn[T, U] Parser::add(
   self : Parser[T],
   key : String,
   builder : OptionBuilder[U],
 ) -> (Parser[T], TypedHandle[U]) {
-  let spec = (builder.build_spec)(key)
-  let handle : TypedHandle[U] = {
-    key,
-    extract: fn(args) { (builder.extract)(args, key) },
-  }
+  let (spec, handle) = resolve_builder(key, builder)
   (self.add_option(spec), handle)
 }
 

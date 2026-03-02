@@ -133,11 +133,7 @@ pub fn[T] Cli::add(
   key : String,
   builder : OptionBuilder[T],
 ) -> (Cli, TypedHandle[T]) {
-  let spec = (builder.build_spec)(key)
-  let handle : TypedHandle[T] = {
-    key,
-    extract: fn(args) { (builder.extract)(args, key) },
-  }
+  let (spec, handle) = resolve_builder(key, builder)
   (self.add_option(spec), handle)
 }
 
@@ -147,11 +143,7 @@ pub fn[T] CliCommand::add(
   key : String,
   builder : OptionBuilder[T],
 ) -> (CliCommand, TypedHandle[T]) {
-  let spec = (builder.build_spec)(key)
-  let handle : TypedHandle[T] = {
-    key,
-    extract: fn(args) { (builder.extract)(args, key) },
-  }
+  let (spec, handle) = resolve_builder(key, builder)
   (self.add_option(spec), handle)
 }
 
@@ -321,14 +313,9 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
       if cmd.spec.name == cmd_name || contains_alias(cmd.spec.aliases, cmd_name) {
         let combined_before = before_hooks + cmd.before_hooks
         let combined_after = cmd.after_hooks + after_hooks
+        let has_subs = cmd.spec.subcommands.length() > 0
         if index == path.length() - 1 {
-          run_cmd(
-            combined_before,
-            cmd.handler,
-            combined_after,
-            args,
-            cmd.spec.subcommands.length() > 0,
-          )
+          run_cmd(combined_before, cmd.handler, combined_after, args, has_subs)
           return true
         }
         let child = dispatch(
@@ -341,13 +328,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         if child {
           return true
         }
-        run_cmd(
-          combined_before,
-          cmd.handler,
-          combined_after,
-          args,
-          cmd.spec.subcommands.length() > 0,
-        )
+        run_cmd(combined_before, cmd.handler, combined_after, args, has_subs)
         return true
       }
     }
@@ -377,7 +358,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         if self.commands.length() > 0 {
           raise HelpRequested("")
         } else {
-          ()
+          raise HandlerError("no handler registered for this command")
         }
     }
   })
@@ -410,6 +391,9 @@ pub fn Cli::parse(self : Cli, args : Array[String]) -> Unit raise ParseError {
 /// Run the CLI in-process for tests without printing or exiting the process.
 /// Returns structured output, exit code, and optional parse error.
 pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
+  // Build once; reused for parsing and for help-text generation below.
+  let p = self.to_parser()
+
   // Match run(): with no args and command-only CLI, show help without exit.
   if args.length() == 0 && self.commands.length() > 0 {
     match self.handler {
@@ -417,7 +401,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
       None =>
         return {
           exit_code: Success,
-          output: Some(generate_help(self.to_parser())),
+          output: Some(generate_help(p)),
           error: None,
         }
     }
@@ -431,7 +415,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
     }
   }
 
-  let parsed : Result[Unit, ParseError] = Ok(self.parse(args)) catch {
+  let parsed : Result[Unit, ParseError] = Ok(p.parse(args)) catch {
     err => Err(err)
   }
 
@@ -451,7 +435,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
                 spec,
                 include_version=self.version is Some(_),
               )
-            None => generate_help(self.to_parser())
+            None => generate_help(p)
           }
           {
             exit_code: exit_code_for_error(err),
