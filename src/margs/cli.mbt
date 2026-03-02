@@ -99,6 +99,47 @@ pub fn Cli::add_after_hook(
 }
 
 ///|
+fn Cli::add_option_internal(self : Cli, opt : OptionSpec) -> Cli {
+  { ..self, options: self.options + [opt] }
+}
+
+///|
+fn CliCommand::add_option_internal(
+  self : CliCommand,
+  opt : OptionSpec,
+) -> CliCommand {
+  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
+}
+
+///|
+pub fn[T] Cli::add(
+  self : Cli,
+  key : String,
+  builder : OptionBuilder[T],
+) -> (Cli, TypedHandle[T]) {
+  let spec = (builder.build_spec)(key)
+  let handle : TypedHandle[T] = {
+    key,
+    extract: fn(args) { (builder.extract)(args, key) },
+  }
+  (self.add_option_internal(spec), handle)
+}
+
+///|
+pub fn[T] CliCommand::add(
+  self : CliCommand,
+  key : String,
+  builder : OptionBuilder[T],
+) -> (CliCommand, TypedHandle[T]) {
+  let spec = (builder.build_spec)(key)
+  let handle : TypedHandle[T] = {
+    key,
+    extract: fn(args) { (builder.extract)(args, key) },
+  }
+  (self.add_option_internal(spec), handle)
+}
+
+///|
 /// Add a global option to the CLI.
 pub fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
   { ..self, options: self.options + [opt] }

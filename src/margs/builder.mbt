@@ -141,6 +141,20 @@ pub fn[T] Parser::add_option(self : Parser[T], opt : OptionSpec) -> Parser[T] {
 }
 
 ///|
+pub fn[T, U] Parser::add(
+  self : Parser[T],
+  key : String,
+  builder : OptionBuilder[U],
+) -> (Parser[T], TypedHandle[U]) {
+  let spec = (builder.build_spec)(key)
+  let handle : TypedHandle[U] = {
+    key,
+    extract: fn(args) { (builder.extract)(args, key) },
+  }
+  (self.add_option(spec), handle)
+}
+
+///|
 /// Add a positional argument to the parser
 pub fn[T] Parser::add_positional(
   self : Parser[T],
