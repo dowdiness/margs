@@ -130,6 +130,18 @@ test "required double with invalid env raises InvalidValue not MissingRequired" 
 }
 
 ///|
+test "ParsedArgs equality is source-agnostic" {
+  let p = parser("test", builder=fn(args) { args }).add_option(
+    str_option("host", long="host", default="localhost"),
+  )
+  let result_default = p.parse([])
+  let result_cli = p.parse(["--host", "localhost"])
+  inspect(result_default.get_source("host"), content="Some(FromDefault)")
+  inspect(result_cli.get_source("host"), content="Some(FromCli)")
+  inspect(result_default == result_cli, content="true")
+}
+
+///|
 test "get_source returns FromConfig for config-sourced value" {
   let config_content = "{\"host\": \"config.example.com\"}"
   @fs.write_string_to_file(".test_vs_config.json", config_content)

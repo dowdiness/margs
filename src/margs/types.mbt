@@ -170,7 +170,36 @@ pub struct ParsedArgs {
   priv command_path : Array[String]
   priv values : Map[String, (ArgValue, ValueSource)]
   priv positionals : Array[String]
-} derive(Show, Eq)
+} derive(Show)
+
+///|
+/// Equality compares command path, positionals, and option values only.
+/// ValueSource provenance is intentionally excluded so that two parses
+/// producing the same logical values compare equal regardless of source.
+pub impl Eq for ParsedArgs with equal(self, other : ParsedArgs) -> Bool {
+  if self.command_path != other.command_path {
+    return false
+  }
+  if self.positionals != other.positionals {
+    return false
+  }
+  for entry in self.values {
+    let (k, v) = entry
+    let (argval, _) = v
+    match other.values.get(k) {
+      Some((ov, _)) => if argval != ov { return false }
+      None => return false
+    }
+  }
+  for entry in other.values {
+    let (k, _) = entry
+    match self.values.get(k) {
+      None => return false
+      Some(_) => ()
+    }
+  }
+  true
+}
 
 ///|
 /// Parse error type
