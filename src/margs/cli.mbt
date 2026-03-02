@@ -252,15 +252,15 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
     before_hooks : Array[(ParsedArgs) -> Unit raise Error],
     after_hooks : Array[(ParsedArgs) -> Unit raise Error],
   ) -> Bool raise ParseError {
-    if index >= args.command_path.length() {
+    if index >= args.get_command_path().length() {
       return false
     }
-    let cmd_name = args.command_path[index]
+    let cmd_name = args.get_command_path()[index]
     for cmd in commands {
       if cmd.spec.name == cmd_name || contains_alias(cmd.spec.aliases, cmd_name) {
         let combined_before = before_hooks + cmd.before_hooks
         let combined_after = cmd.after_hooks + after_hooks
-        if index == args.command_path.length() - 1 {
+        if index == args.get_command_path().length() - 1 {
           run_with_hooks(combined_before, cmd.handler, combined_after, args)
           return true
         }
@@ -282,7 +282,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
   }
 
   let mut p : Parser[Unit] = parser(self.name, description=self.description, builder=args => {
-    if args.command_path.length() > 1 {
+    if args.get_command_path().length() > 1 {
       let handled = dispatch(
         args,
         self.commands,
@@ -291,7 +291,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         self.after_hooks,
       )
       if not(handled) {
-        let cmd_name = args.command_path[1]
+        let cmd_name = args.get_command_path()[1]
         raise UnknownCommand("unknown command '\{cmd_name}'")
       }
       return ()
