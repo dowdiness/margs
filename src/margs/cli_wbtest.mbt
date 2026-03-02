@@ -23,8 +23,8 @@ test "help routing resolves deepest nested subcommand" {
 ///|
 test "help routing skips global option values before subcommand" {
   let cli = create_cli("project")
-    .add_option(str_option("config", short='c', long="config"))
-    .add_command(command("deploy", handler=fn(_) { () }))
+  let (cli, _) = cli.add("config", str_option(short='c', long="config"))
+  let cli = cli.add_command(command("deploy", handler=fn(_) { () }))
 
   let target = resolve_help_subcommand(
     ["--config", "app.toml", "deploy", "--help"],

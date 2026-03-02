@@ -5,12 +5,16 @@ test "cli dispatches command handler" {
   let called = Ref::new(false)
   let seen_port = Ref::new(0)
 
-  let cli = create_cli("demo").add_command(
-    command("serve", handler=fn(args) {
-      called.val = true
-      seen_port.val = args.get_int("port").unwrap_or(0)
-    }).add_option(port_option()),
+  let serve = command("serve")
+  let (serve, port_h) = serve.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }),
   )
+  let serve = serve.set_handler(handler=fn(args) {
+    called.val = true
+    seen_port.val = port_h.get(args).unwrap_or(0)
+  })
+  let cli = create_cli("demo").add_command(serve)
 
   cli.parse(["serve", "--port", "8080"])
   inspect(called.val, content="true")
@@ -22,12 +26,15 @@ test "global option is visible in command handler" {
   let seen_verbose = Ref::new(false)
 
   let cli = create_cli("demo")
-    .add_option(verbose_flag())
-    .add_command(
-      command("serve", handler=fn(args) {
-        seen_verbose.val = args.get_bool("verbose")
-      }),
-    )
+  let (cli, verbose_h) = cli.add(
+    "verbose",
+    flag(short='v', long="verbose", help="Enable verbose output"),
+  )
+  let cli = cli.add_command(
+    command("serve", handler=fn(args) {
+      seen_verbose.val = verbose_h.get(args).unwrap_or(false)
+    }),
+  )
 
   cli.parse(["-v", "serve"])
   inspect(seen_verbose.val, content="true")
@@ -86,6 +93,17 @@ test "cli version appears in generated help" {
   let cli = create_cli("demo", version="1.2.3")
   let help = generate_help(cli.to_parser())
   inspect(help.contains("Version: 1.2.3"), content="true")
+}
+
+///|
+test "handlerless leaf command raises handler error" {
+  let cli = create_cli("demo").add_command(command("deploy"))
+  let result = cli.run_for_test(["deploy"])
+  inspect(result.exit_code.code(), content="1")
+  match result.error {
+    Some(ParseError::HandlerError(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
 }
 
 ///|
@@ -215,9 +233,12 @@ test "run_for_test returns command help with success exit" {
 
 ///|
 test "run_for_test maps parse failures to exit code and output" {
-  let cli = create_cli("demo").add_command(
-    command("serve", handler=fn(_) { () }).add_option(port_option()),
+  let serve = command("serve", handler=fn(_) { () })
+  let (serve, _) = serve.add(
+    "port",
+    int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }),
   )
+  let cli = create_cli("demo").add_command(serve)
   let result = cli.run_for_test(["serve", "--port", "abc"])
   inspect(result.exit_code.code(), content="3")
   inspect(
@@ -226,6 +247,41 @@ test "run_for_test maps parse failures to exit code and output" {
   )
   match result.error {
     Some(ParseError::InvalidValue(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
+}
+
+///|
+// Regression: add_subcommand only populates spec.subcommands, not commands.
+// run_cmd must check spec.subcommands so spec-only groups show help instead
+// of silently succeeding.
+test "spec-only group without handler raises help on bare invocation" {
+  let cli = create_cli("demo").add_command(
+    command("group").add_subcommand(
+      subcommand("child", description="A child cmd"),
+    ),
+  )
+  let result = cli.run_for_test(["group"])
+  inspect(result.exit_code.code(), content="0")
+  inspect(result.output.unwrap_or("").contains("child"), content="true")
+  match result.error {
+    Some(ParseError::HelpRequested(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
+}
+
+///|
+test "spec-only group without handler raises help when child not matched" {
+  let cli = create_cli("demo").add_command(
+    command("group").add_subcommand(
+      subcommand("child", description="A child cmd"),
+    ),
+  )
+  // "unknown-child" is not a registered child; parser raises UnknownCommand.
+  let result = cli.run_for_test(["group", "unknown-child"])
+  inspect(result.exit_code.code(), content="2")
+  match result.error {
+    Some(ParseError::UnknownCommand(_)) => inspect(true, content="true")
     _ => inspect(false, content="true")
   }
 }

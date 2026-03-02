@@ -1,6 +1,6 @@
 ///|
 /// Split a string into two elements tuple at the first occurrence of a delimiter.
-pub fn split_at(s : String, delimiter : Char) -> (String, String)? {
+fn split_at(s : String, delimiter : Char) -> (String, String)? {
   match s.find(delimiter.to_string()) {
     Some(i) => {
       let before = try? s[:i]
@@ -60,7 +60,7 @@ test "split_at with space delimiter" {
 
 ///|
 /// Parse an integer from a string. Returns None if the string is not a valid integer.
-pub fn parse_int(s : String) -> Int? {
+fn parse_int(s : String) -> Int? {
   if s.length() == 0 {
     return None
   }
@@ -91,7 +91,7 @@ pub fn parse_int(s : String) -> Int? {
 
 ///|
 /// Parse a double from a string. Returns None if the string is not a valid number.
-pub fn parse_double(s : String) -> Double? {
+fn parse_double(s : String) -> Double? {
   let trimmed = s.trim().to_string()
   if trimmed.length() == 0 {
     return None
@@ -108,7 +108,7 @@ pub fn parse_double(s : String) -> Double? {
 
 ///|
 /// Pad a string to the right with spaces to reach the desired width.
-pub fn pad_right(s : String, width : Int) -> String {
+fn pad_right(s : String, width : Int) -> String {
   let len = s.length()
   if len >= width {
     s
@@ -124,7 +124,7 @@ pub fn pad_right(s : String, width : Int) -> String {
 
 ///|
 /// Extract the key from any OptionSpec variant.
-pub fn option_key(opt : OptionSpec) -> String {
+fn option_key(opt : OptionSpec) -> String {
   match opt {
     StringOption(d) => d.key
     IntOption(d) => d.key
@@ -136,7 +136,7 @@ pub fn option_key(opt : OptionSpec) -> String {
 
 ///|
 /// Extract the short flag from any OptionSpec variant.
-pub fn option_short(opt : OptionSpec) -> Char? {
+fn option_short(opt : OptionSpec) -> Char? {
   match opt {
     StringOption(d) => d.short
     IntOption(d) => d.short
@@ -148,7 +148,7 @@ pub fn option_short(opt : OptionSpec) -> Char? {
 
 ///|
 /// Extract the long flag from any OptionSpec variant.
-pub fn option_long(opt : OptionSpec) -> String? {
+fn option_long(opt : OptionSpec) -> String? {
   match opt {
     StringOption(d) => d.long
     IntOption(d) => d.long
@@ -160,7 +160,7 @@ pub fn option_long(opt : OptionSpec) -> String? {
 
 ///|
 /// Extract the help text from any OptionSpec variant.
-pub fn option_help(opt : OptionSpec) -> String {
+fn option_help(opt : OptionSpec) -> String {
   match opt {
     StringOption(d) => d.help
     IntOption(d) => d.help
@@ -172,7 +172,7 @@ pub fn option_help(opt : OptionSpec) -> String {
 
 ///|
 /// Check if an option is required.
-pub fn option_required(opt : OptionSpec) -> Bool {
+fn option_required(opt : OptionSpec) -> Bool {
   match opt {
     StringOption(d) => d.required
     IntOption(d) => d.required
@@ -282,19 +282,19 @@ test "pad_right exact width" {
 
 ///|
 test "option_key extracts key from StringOption" {
-  let opt = str_option("name", long="name")
+  let opt = build_spec("name", str_option(long="name"))
   inspect(option_key(opt), content="name")
 }
 
 ///|
 test "option_key extracts key from BoolFlag" {
-  let opt = flag("verbose", short='v')
+  let opt = build_spec("verbose", flag(short='v'))
   inspect(option_key(opt), content="verbose")
 }
 
 ///|
 /// Calculate Levenshtein distance between two strings (for typo suggestions)
-pub fn levenshtein_distance(a : String, b : String) -> Int {
+fn levenshtein_distance(a : String, b : String) -> Int {
   let len_a = a.length()
   let len_b = b.length()
   if len_a == 0 {
@@ -338,7 +338,7 @@ pub fn levenshtein_distance(a : String, b : String) -> Int {
 
 ///|
 /// Find the most similar string from candidates (returns None if no good match)
-pub fn find_similar(input : String, candidates : Array[String]) -> String? {
+fn find_similar(input : String, candidates : Array[String]) -> String? {
   let mut best_match : String? = None
   let mut best_distance = 3 // Only suggest if distance <= 2
   for candidate in candidates {

@@ -1,10 +1,24 @@
 // High-level CLI wrapper API built on top of Parser
 
 ///|
-/// A command with its spec and handler.
+/// Create a bare subcommand spec for low-level parser construction.
+/// For the high-level API use command() instead.
+pub fn subcommand(
+  name : String,
+  description? : String = "",
+  aliases? : Array[String] = [],
+  options? : Array[OptionSpec] = [],
+  positionals? : Array[PositionalSpec] = [],
+  subcommands? : Array[SubcommandSpec] = [],
+) -> SubcommandSpec {
+  { name, description, aliases, options, positionals, subcommands }
+}
+
+///|
+/// A command with its spec and optional handler.
 pub struct CliCommand {
   spec : SubcommandSpec
-  handler : (ParsedArgs) -> Unit raise Error
+  handler : ((ParsedArgs) -> Unit raise Error)?
   commands : Array[CliCommand]
   before_hooks : Array[(ParsedArgs) -> Unit raise Error]
   after_hooks : Array[(ParsedArgs) -> Unit raise Error]
@@ -55,12 +69,17 @@ pub fn create_cli(
 }
 
 ///|
-/// Create a command with a handler.
+/// Create a command. The handler can be provided now or set later with set_handler().
+/// Providing handler up-front: command("serve", handler=fn(args) { ... })
+/// Deferred pattern (needed when options are added after construction):
+///   let cmd = command("serve", ...)
+///   let (cmd, port_h) = cmd.add("port", int_option(...))
+///   let cmd = cmd.set_handler(handler=fn(args) { port_h.get(args) ... })
 pub fn command(
   name : String,
   description? : String = "",
   aliases? : Array[String] = [],
-  handler~ : (ParsedArgs) -> Unit raise Error,
+  handler? : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
   {
     spec: subcommand(name, description~, aliases~),
@@ -99,9 +118,33 @@ pub fn Cli::add_after_hook(
 }
 
 ///|
-/// Add a global option to the CLI.
-pub fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
+fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
   { ..self, options: self.options + [opt] }
+}
+
+///|
+fn CliCommand::add_option(self : CliCommand, opt : OptionSpec) -> CliCommand {
+  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
+}
+
+///|
+pub fn[T] Cli::add(
+  self : Cli,
+  key : String,
+  builder : OptionBuilder[T],
+) -> (Cli, TypedHandle[T]) {
+  let (spec, handle) = resolve_builder(key, builder)
+  (self.add_option(spec), handle)
+}
+
+///|
+pub fn[T] CliCommand::add(
+  self : CliCommand,
+  key : String,
+  builder : OptionBuilder[T],
+) -> (CliCommand, TypedHandle[T]) {
+  let (spec, handle) = resolve_builder(key, builder)
+  (self.add_option(spec), handle)
 }
 
 ///|
@@ -126,15 +169,6 @@ pub fn Cli::with_version(self : Cli, version : String) -> Cli {
 /// Add a command to the CLI.
 pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
   { ..self, commands: self.commands + [cmd] }
-}
-
-///|
-/// Add an option to a command.
-pub fn CliCommand::add_option(
-  self : CliCommand,
-  opt : OptionSpec,
-) -> CliCommand {
-  { ..self, spec: { ..self.spec, options: self.spec.options + [opt] } }
 }
 
 ///|
@@ -192,7 +226,7 @@ pub fn CliCommand::set_handler(
   self : CliCommand,
   handler~ : (ParsedArgs) -> Unit raise Error,
 ) -> CliCommand {
-  { ..self, handler, }
+  { ..self, handler: Some(handler) }
 }
 
 ///|
@@ -245,6 +279,24 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
     false
   }
 
+  fn run_cmd(
+    combined_before : Array[(ParsedArgs) -> Unit raise Error],
+    handler : ((ParsedArgs) -> Unit raise Error)?,
+    combined_after : Array[(ParsedArgs) -> Unit raise Error],
+    args : ParsedArgs,
+    has_subcommands : Bool,
+  ) -> Unit raise ParseError {
+    match handler {
+      Some(h) => run_with_hooks(combined_before, h, combined_after, args)
+      None =>
+        if has_subcommands {
+          raise HelpRequested("")
+        } else {
+          raise HandlerError("no handler registered for this command")
+        }
+    }
+  }
+
   fn dispatch(
     args : ParsedArgs,
     commands : Array[CliCommand],
@@ -261,8 +313,9 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
       if cmd.spec.name == cmd_name || contains_alias(cmd.spec.aliases, cmd_name) {
         let combined_before = before_hooks + cmd.before_hooks
         let combined_after = cmd.after_hooks + after_hooks
+        let has_subs = cmd.spec.subcommands.length() > 0
         if index == path.length() - 1 {
-          run_with_hooks(combined_before, cmd.handler, combined_after, args)
+          run_cmd(combined_before, cmd.handler, combined_after, args, has_subs)
           return true
         }
         let child = dispatch(
@@ -275,7 +328,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         if child {
           return true
         }
-        run_with_hooks(combined_before, cmd.handler, combined_after, args)
+        run_cmd(combined_before, cmd.handler, combined_after, args, has_subs)
         return true
       }
     }
@@ -305,7 +358,7 @@ pub fn Cli::to_parser(self : Cli) -> Parser[Unit] {
         if self.commands.length() > 0 {
           raise HelpRequested("")
         } else {
-          ()
+          raise HandlerError("no handler registered for this command")
         }
     }
   })
@@ -338,6 +391,9 @@ pub fn Cli::parse(self : Cli, args : Array[String]) -> Unit raise ParseError {
 /// Run the CLI in-process for tests without printing or exiting the process.
 /// Returns structured output, exit code, and optional parse error.
 pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
+  // Build once; reused for parsing and for help-text generation below.
+  let p = self.to_parser()
+
   // Match run(): with no args and command-only CLI, show help without exit.
   if args.length() == 0 && self.commands.length() > 0 {
     match self.handler {
@@ -345,7 +401,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
       None =>
         return {
           exit_code: Success,
-          output: Some(generate_help(self.to_parser())),
+          output: Some(generate_help(p)),
           error: None,
         }
     }
@@ -359,7 +415,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
     }
   }
 
-  let parsed : Result[Unit, ParseError] = Ok(self.parse(args)) catch {
+  let parsed : Result[Unit, ParseError] = Ok(p.parse(args)) catch {
     err => Err(err)
   }
 
@@ -379,7 +435,7 @@ pub fn Cli::run_for_test(self : Cli, args : Array[String]) -> CliTestResult {
                 spec,
                 include_version=self.version is Some(_),
               )
-            None => generate_help(self.to_parser())
+            None => generate_help(p)
           }
           {
             exit_code: exit_code_for_error(err),

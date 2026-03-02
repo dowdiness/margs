@@ -1,9 +1,8 @@
 // Builder API for constructing parsers and option specs
 
 ///|
-/// Create a string option spec
+/// Create a string option builder
 pub fn str_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -12,24 +11,28 @@ pub fn str_option(
   default? : String,
   env? : String,
   validator? : (String) -> Bool,
-) -> OptionSpec {
-  StringOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[String] {
+  {
+    build_spec: fn(key) {
+      StringOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
+    },
+    extract: fn(args, key) { args.get_string(key) },
+  }
 }
 
 ///|
-/// Create an integer option spec
+/// Create an integer option builder
 pub fn int_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -38,24 +41,28 @@ pub fn int_option(
   default? : Int,
   env? : String,
   validator? : (Int) -> Bool,
-) -> OptionSpec {
-  IntOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[Int] {
+  {
+    build_spec: fn(key) {
+      IntOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
+    },
+    extract: fn(args, key) { args.get_int(key) },
+  }
 }
 
 ///|
-/// Create a double option spec
+/// Create a double option builder
 pub fn double_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
@@ -64,44 +71,103 @@ pub fn double_option(
   default? : Double,
   env? : String,
   validator? : (Double) -> Bool,
-) -> OptionSpec {
-  DoubleOption({
-    key,
-    short,
-    long,
-    help,
-    metavar,
-    required,
-    default,
-    env,
-    validator,
-  })
+) -> OptionBuilder[Double] {
+  {
+    build_spec: fn(key) {
+      DoubleOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator,
+      })
+    },
+    extract: fn(args, key) { args.get_double(key) },
+  }
 }
 
 ///|
-/// Create a boolean flag spec
+/// Create a boolean flag builder
 pub fn flag(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
   default? : Bool = false,
   env? : String,
-) -> OptionSpec {
-  BoolFlag({ key, short, long, help, default, env })
+) -> OptionBuilder[Bool] {
+  {
+    build_spec: fn(key) { BoolFlag({ key, short, long, help, default, env }) },
+    extract: fn(args, key) { Some(args.get_bool(key)) },
+  }
 }
 
 ///|
-/// Create a string list option spec (can be specified multiple times)
+/// Create a string list option builder (can be specified multiple times)
 pub fn str_list_option(
-  key : String,
   short? : Char,
   long? : String,
   help? : String = "",
   metavar? : String = "VALUE",
   env? : String,
-) -> OptionSpec {
-  StringListOption({ key, short, long, help, metavar, env })
+) -> OptionBuilder[Array[String]] {
+  {
+    build_spec: fn(key) {
+      StringListOption({ key, short, long, help, metavar, env })
+    },
+    extract: fn(args, key) { Some(args.get_string_list(key)) },
+  }
+}
+
+///|
+/// Create a custom-typed option builder backed by a string option.
+/// `parse~` converts the raw string value to `T?`; returning `None` rejects the value.
+///
+/// Note: `default~` is stored as a raw string and is NOT validated through `parse` at
+/// build time. If the default string is not parseable, `TypedHandle::get` returns `None`
+/// and `TypedHandle::require` raises `InvalidValue`. Env-var values have the same caveat.
+/// CLI-provided values are validated at parse time via the derived validator.
+pub fn[T] custom_option(
+  short? : Char,
+  long? : String,
+  help? : String = "",
+  metavar? : String = "VALUE",
+  required? : Bool = false,
+  default? : String,
+  env? : String,
+  parse~ : (String) -> T?,
+) -> OptionBuilder[T] {
+  {
+    build_spec: fn(key) {
+      StringOption({
+        key,
+        short,
+        long,
+        help,
+        metavar,
+        required,
+        default,
+        env,
+        validator: Some(fn(s) { parse(s) is Some(_) }),
+      })
+    },
+    extract: fn(args, key) {
+      match args.get_string(key) {
+        Some(s) => parse(s)
+        None => None
+      }
+    },
+  }
+}
+
+///|
+/// Materialise an OptionBuilder into an OptionSpec for a given key.
+/// Used when constructing subcommand option arrays via the low-level `subcommand()` API.
+pub fn[T] build_spec(key : String, builder : OptionBuilder[T]) -> OptionSpec {
+  (builder.build_spec)(key)
 }
 
 ///|
@@ -138,6 +204,28 @@ pub fn[T] parser(
 /// Add an option to the parser
 pub fn[T] Parser::add_option(self : Parser[T], opt : OptionSpec) -> Parser[T] {
   { ..self, options: self.options + [opt] }
+}
+
+///|
+/// Shared helper: materialise a builder into its OptionSpec + TypedHandle pair.
+fn[T] resolve_builder(
+  key : String,
+  builder : OptionBuilder[T],
+) -> (OptionSpec, TypedHandle[T]) {
+  (
+    (builder.build_spec)(key),
+    { key, extract: fn(args) { (builder.extract)(args, key) } },
+  )
+}
+
+///|
+pub fn[T, U] Parser::add(
+  self : Parser[T],
+  key : String,
+  builder : OptionBuilder[U],
+) -> (Parser[T], TypedHandle[U]) {
+  let (spec, handle) = resolve_builder(key, builder)
+  (self.add_option(spec), handle)
 }
 
 ///|
@@ -190,17 +278,4 @@ pub fn[T] Parser::add_example(
   desc : String,
 ) -> Parser[T] {
   { ..self, examples: self.examples + [(cmd, desc)] }
-}
-
-///|
-/// Create a subcommand spec
-pub fn subcommand(
-  name : String,
-  description? : String = "",
-  aliases? : Array[String] = [],
-  options? : Array[OptionSpec] = [],
-  positionals? : Array[PositionalSpec] = [],
-  subcommands? : Array[SubcommandSpec] = [],
-) -> SubcommandSpec {
-  { name, description, aliases, options, positionals, subcommands }
 }

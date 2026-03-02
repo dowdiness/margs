@@ -55,18 +55,16 @@ test "resolve_raw_value prefers config over default when env not set" {
 
 ///|
 test "get_source returns FromCli for CLI-provided value" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("host", long="host"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("host", str_option(long="host"))
   let result = p.parse(["--host", "example.com"])
   inspect(result.get_source("host"), content="Some(FromCli)")
 }
 
 ///|
 test "get_source returns FromDefault for default value" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("host", long="host", default="localhost"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("host", str_option(long="host", default="localhost"))
   let result = p.parse([])
   inspect(result.get_source("host"), content="Some(FromDefault)")
 }
@@ -74,9 +72,8 @@ test "get_source returns FromDefault for default value" {
 ///|
 test "get_source returns FromEnv when env var is set" {
   @sys.set_env_var("TEST_VS_HOST", "env.example.com")
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("host", long="host", env="TEST_VS_HOST"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("host", str_option(long="host", env="TEST_VS_HOST"))
   let result = p.parse([]) catch {
     e => {
       @sys.unset_env_var("TEST_VS_HOST")
@@ -89,9 +86,8 @@ test "get_source returns FromEnv when env var is set" {
 
 ///|
 test "get_source returns None when value is absent" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("host", long="host"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("host", str_option(long="host"))
   let result = p.parse([])
   inspect(result.get_source("host"), content="None")
 }
@@ -99,9 +95,8 @@ test "get_source returns None when value is absent" {
 ///|
 test "CLI value overrides env — source is FromCli" {
   @sys.set_env_var("TEST_VS_PORT", "9000")
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    int_option("port", long="port", env="TEST_VS_PORT"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("port", int_option(long="port", env="TEST_VS_PORT"))
   let result = p.parse(["--port", "8080"]) catch {
     e => {
       @sys.unset_env_var("TEST_VS_PORT")
@@ -114,9 +109,8 @@ test "CLI value overrides env — source is FromCli" {
 
 ///|
 test "get_source returns FromDefault for bool flag default" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    flag("verbose", long="verbose"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("verbose", flag(long="verbose"))
   let result = p.parse([])
   inspect(result.get_source("verbose"), content="Some(FromDefault)")
 }
@@ -124,8 +118,10 @@ test "get_source returns FromDefault for bool flag default" {
 ///|
 test "required double with invalid env raises InvalidValue not MissingRequired" {
   @sys.set_env_var("TEST_VS_DBL", "not-a-number")
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    double_option("rate", long="rate", env="TEST_VS_DBL", required=true),
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add(
+    "rate",
+    double_option(long="rate", env="TEST_VS_DBL", required=true),
   )
   let result = try {
     ignore(p.parse([]))
@@ -141,9 +137,8 @@ test "required double with invalid env raises InvalidValue not MissingRequired" 
 
 ///|
 test "ParsedArgs equality is source-agnostic" {
-  let p = parser("test", builder=fn(args) { args }).add_option(
-    str_option("host", long="host", default="localhost"),
-  )
+  let p = parser("test", builder=fn(args) { args })
+  let (p, _) = p.add("host", str_option(long="host", default="localhost"))
   let result_default = p.parse([])
   let result_cli = p.parse(["--host", "localhost"])
   inspect(result_default.get_source("host"), content="Some(FromDefault)")
@@ -157,8 +152,8 @@ test "get_source returns FromConfig for config-sourced value" {
   let config_file = ".test_vs_config_get_src.json"
   @fs.write_string_to_file(config_file, config_content)
   let p = parser("test", builder=fn(args) { args })
-    .add_option(str_option("host", long="host"))
-    .with_config_file(config_file)
+  let (p, _) = p.add("host", str_option(long="host"))
+  let p = p.with_config_file(config_file)
   let result = p.parse([]) catch {
     e => {
       @fs.remove_file(config_file)

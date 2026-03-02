@@ -634,7 +634,7 @@ pub fn[T] Parser::run(self : Parser[T]) -> T raise ParseError {
 
 ///|
 /// Get a string value by key
-pub fn ParsedArgs::get_string(self : ParsedArgs, key : String) -> String? {
+fn ParsedArgs::get_string(self : ParsedArgs, key : String) -> String? {
   match self.values.get(key) {
     Some((Str(s), _)) => Some(s)
     _ => None
@@ -643,7 +643,7 @@ pub fn ParsedArgs::get_string(self : ParsedArgs, key : String) -> String? {
 
 ///|
 /// Get an integer value by key
-pub fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
+fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
   match self.values.get(key) {
     Some((Int(n), _)) => Some(n)
     _ => None
@@ -652,7 +652,7 @@ pub fn ParsedArgs::get_int(self : ParsedArgs, key : String) -> Int? {
 
 ///|
 /// Get a double value by key
-pub fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
+fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
   match self.values.get(key) {
     // Treat NaN sentinel (from a failed parse with no default) as absent
     Some((Double(n), _)) => if n.is_nan() { None } else { Some(n) }
@@ -662,7 +662,7 @@ pub fn ParsedArgs::get_double(self : ParsedArgs, key : String) -> Double? {
 
 ///|
 /// Get a boolean value by key (defaults to false if not present)
-pub fn ParsedArgs::get_bool(self : ParsedArgs, key : String) -> Bool {
+fn ParsedArgs::get_bool(self : ParsedArgs, key : String) -> Bool {
   match self.values.get(key) {
     Some((Bool(b), _)) => b
     _ => false
@@ -671,7 +671,7 @@ pub fn ParsedArgs::get_bool(self : ParsedArgs, key : String) -> Bool {
 
 ///|
 /// Get a string list value by key
-pub fn ParsedArgs::get_string_list(
+fn ParsedArgs::get_string_list(
   self : ParsedArgs,
   key : String,
 ) -> Array[String] {
@@ -683,7 +683,7 @@ pub fn ParsedArgs::get_string_list(
 
 ///|
 /// Require a string value by key (raises if missing)
-pub fn ParsedArgs::require_string(
+fn ParsedArgs::require_string(
   self : ParsedArgs,
   key : String,
 ) -> String raise ParseError {
@@ -695,7 +695,7 @@ pub fn ParsedArgs::require_string(
 
 ///|
 /// Require an integer value by key (raises if missing)
-pub fn ParsedArgs::require_int(
+fn ParsedArgs::require_int(
   self : ParsedArgs,
   key : String,
 ) -> Int raise ParseError {
@@ -707,7 +707,7 @@ pub fn ParsedArgs::require_int(
 
 ///|
 /// Require a double value by key (raises if missing)
-pub fn ParsedArgs::require_double(
+fn ParsedArgs::require_double(
   self : ParsedArgs,
   key : String,
 ) -> Double raise ParseError {
