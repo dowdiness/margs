@@ -5,9 +5,7 @@ import {
   "moonbitlang/x/sys",
   "moonbitlang/x/fs",
 }
+// get_source is pkg-private, used in whitebox tests and Improvement 3.
+// moon build excludes _wbtest.mbt, so suppress false-positive unused_value.
 
-options(
-  // get_source is pkg-private, used in whitebox tests and Improvement 3.
-  // moon build excludes _wbtest.mbt, so suppress false-positive unused_value.
-  "warn-list": "-1",
-)
+warnings = "-1"
