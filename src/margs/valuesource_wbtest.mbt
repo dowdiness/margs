@@ -4,8 +4,8 @@
 test "resolve_raw_value returns env var with FromEnv" {
   @sys.set_env_var("TEST_RRV_KEY", "hello")
   let result = resolve_raw_value("key", Some("TEST_RRV_KEY"), None, None)
-  inspect(result, content="Some((\"hello\", FromEnv))")
   @sys.unset_env_var("TEST_RRV_KEY")
+  inspect(result, content="Some((\"hello\", FromEnv))")
 }
 
 ///|
@@ -39,8 +39,8 @@ test "resolve_raw_value prefers env over config" {
     Some(config),
     Some("default"),
   )
-  inspect(result, content="Some((\"from-env\", FromEnv))")
   @sys.unset_env_var("TEST_RRV_PREF")
+  inspect(result, content="Some((\"from-env\", FromEnv))")
 }
 
 ///|
@@ -78,8 +78,8 @@ test "get_source returns FromEnv when env var is set" {
     str_option("host", long="host", env="TEST_VS_HOST"),
   )
   let result = p.parse([])
-  inspect(result.get_source("host"), content="Some(FromEnv)")
   @sys.unset_env_var("TEST_VS_HOST")
+  inspect(result.get_source("host"), content="Some(FromEnv)")
 }
 
 ///|
@@ -98,8 +98,8 @@ test "CLI value overrides env — source is FromCli" {
     int_option("port", long="port", env="TEST_VS_PORT"),
   )
   let result = p.parse(["--port", "8080"])
-  inspect(result.get_source("port"), content="Some(FromCli)")
   @sys.unset_env_var("TEST_VS_PORT")
+  inspect(result.get_source("port"), content="Some(FromCli)")
 }
 
 ///|
@@ -125,8 +125,8 @@ test "required double with invalid env raises InvalidValue not MissingRequired" 
     MissingRequired(_) => "MissingRequired"
     _ => "other"
   }
-  inspect(result, content="InvalidValue")
   @sys.unset_env_var("TEST_VS_DBL")
+  inspect(result, content="InvalidValue")
 }
 
 ///|
@@ -137,7 +137,7 @@ test "get_source returns FromConfig for config-sourced value" {
     .add_option(str_option("host", long="host"))
     .with_config_file(".test_vs_config.json")
   let result = p.parse([])
+  @fs.remove_file(".test_vs_config.json")
   inspect(result.get_source("host"), content="Some(FromConfig)")
   inspect(result.get_string("host"), content="Some(\"config.example.com\")")
-  @fs.remove_file(".test_vs_config.json")
 }

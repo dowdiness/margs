@@ -1,6 +1,6 @@
 # Improvement 1: resolve_raw_value + ValueSource Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **REQUIRED SUB-SKILL:** Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Refactor `init_defaults` into a unified `resolve_raw_value` pipeline and attach `ValueSource` provenance to every stored value, making all `ParsedArgs` fields `priv` to shield external users from the internal type change.
 
