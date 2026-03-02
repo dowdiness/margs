@@ -58,9 +58,8 @@ test "parse empty JSON returns None" {
 test "parse JSON with escaped quotes" {
   let json = "{\"message\": \"Hello \\\"World\\\"\"}"
   match parse_json_config(json) {
-    Some(config) => {
+    Some(config) =>
       inspect(config.get("message"), content="Some(\"Hello \\\"World\\\"\")")
-    }
     None => inspect(false, content="true")
   }
 }
