@@ -5,11 +5,12 @@ test "cli dispatches command handler" {
   let called = Ref::new(false)
   let seen_port = Ref::new(0)
 
-  let serve = command("serve", handler=fn(args) {
+  let serve = command("serve")
+  let (serve, port_h) = serve.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
+  let serve = serve.set_handler(handler=fn(args) {
     called.val = true
-    seen_port.val = args.get_int("port").unwrap_or(0)
+    seen_port.val = port_h.get(args).unwrap_or(0)
   })
-  let (serve, _) = serve.add("port", int_option(long="port", validator=fn(n) { n > 0 && n <= 65535 }))
   let cli = create_cli("demo").add_command(serve)
 
   cli.parse(["serve", "--port", "8080"])
@@ -22,10 +23,10 @@ test "global option is visible in command handler" {
   let seen_verbose = Ref::new(false)
 
   let cli = create_cli("demo")
-  let (cli, _) = cli.add("verbose", flag(short='v', long="verbose", help="Enable verbose output"))
+  let (cli, verbose_h) = cli.add("verbose", flag(short='v', long="verbose", help="Enable verbose output"))
   let cli = cli.add_command(
     command("serve", handler=fn(args) {
-      seen_verbose.val = args.get_bool("verbose")
+      seen_verbose.val = verbose_h.get(args).unwrap_or(false)
     }),
   )
 

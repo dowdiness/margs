@@ -159,8 +159,7 @@ pub fn[T] CliCommand::add(
 }
 
 ///|
-/// Add a global option to the CLI.
-pub fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
+fn Cli::add_option(self : Cli, opt : OptionSpec) -> Cli {
   { ..self, options: self.options + [opt] }
 }
 
@@ -189,8 +188,7 @@ pub fn Cli::add_command(self : Cli, cmd : CliCommand) -> Cli {
 }
 
 ///|
-/// Add an option to a command.
-pub fn CliCommand::add_option(
+fn CliCommand::add_option(
   self : CliCommand,
   opt : OptionSpec,
 ) -> CliCommand {
