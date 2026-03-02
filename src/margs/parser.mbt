@@ -142,12 +142,11 @@ fn init_defaults(
   let values : Map[String, (ArgValue, ValueSource)] = {}
   for opt in options {
     match opt {
-      StringOption(d) => {
+      StringOption(d) =>
         match resolve_raw_value(d.key, d.env, config, d.default) {
           Some((v, source)) => values[d.key] = (Str(v), source)
           None => ()
         }
-      }
       IntOption(d) => {
         let default_str = d.default.map(fn(n) { n.to_string() })
         match resolve_raw_value(d.key, d.env, config, default_str) {
@@ -187,12 +186,12 @@ fn init_defaults(
           None => ()
         }
       }
-      StringListOption(d) => {
+      StringListOption(d) =>
         match resolve_raw_value(d.key, d.env, config, None) {
-          Some((v, source)) => values[d.key] = (StrList(split_env_list(v)), source)
+          Some((v, source)) =>
+            values[d.key] = (StrList(split_env_list(v)), source)
           None => values[d.key] = (StrList([]), FromDefault)
         }
-      }
     }
   }
   values
