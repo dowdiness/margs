@@ -54,17 +54,27 @@ test "parse empty JSON returns None" {
   }
 }
 
-// TODO: Add support for escaped quotes in JSON values
-// ///|
-// test "parse JSON with escaped quotes" {
-//   let json = "{\"message\": \"Hello \\\"World\\\"\"}"
-//   match parse_json_config(json) {
-//     Some(config) => {
-//       inspect(config.get("message"), content="Some(\"Hello \\\"World\\\"\")")
-//     }
-//     None => inspect(false, content="true")
-//   }
-// }
+///|
+test "parse JSON with escaped quotes" {
+  let json = "{\"message\": \"Hello \\\"World\\\"\"}"
+  match parse_json_config(json) {
+    Some(config) =>
+      inspect(config.get("message"), content="Some(\"Hello \\\"World\\\"\")")
+    None => inspect(false, content="true")
+  }
+}
+
+///|
+test "parse JSON config with native boolean values" {
+  let json = "{\"verbose\": true, \"debug\": false}"
+  match parse_json_config(json) {
+    Some(config) => {
+      inspect(config.get("verbose"), content="Some(\"true\")")
+      inspect(config.get("debug"), content="Some(\"false\")")
+    }
+    None => inspect(false, content="true")
+  }
+}
 
 ///|
 test "load nonexistent config file returns None" {

@@ -3,7 +3,7 @@
 ///|
 test "parser loads string option from config file" {
   // Create a temp config file
-  let config_content = "{\"host\": \"config.example.com\", \"port\": \"9000\", \"ratio\": 1.25}"
+  let config_content = "{\"host\": \"config.example.com\", \"port\": 9000, \"ratio\": 1.25}"
   @fs.write_string_to_file(".test_config.json", config_content)
 
   let p = parser("test", builder=fn(args) { args })
@@ -40,7 +40,7 @@ test "cli args override config file values" {
 
 ///|
 test "env vars override config file values" {
-  let config_content = "{\"port\": \"3000\"}"
+  let config_content = "{\"port\": 3000}"
   @fs.write_string_to_file(".test_config3.json", config_content)
 
   @sys.set_env_var("TEST_PORT", "5000")
@@ -94,7 +94,7 @@ test "invalid required double in config fails parse-time validation" {
 
 ///|
 test "bool flag loads from config file" {
-  let config_content = "{\"verbose\": \"true\", \"debug\": \"1\"}"
+  let config_content = "{\"verbose\": true, \"debug\": true}"
   @fs.write_string_to_file(".test_config4.json", config_content)
 
   let p = parser("test", builder=fn(args) { args })
