@@ -77,9 +77,7 @@ test "get_source returns FromEnv when env var is set" {
   let p = parser("test", builder=fn(args) { args }).add_option(
     str_option("host", long="host", env="TEST_VS_HOST"),
   )
-  let result = try {
-    p.parse([])
-  } catch {
+  let result = p.parse([]) catch {
     e => {
       @sys.unset_env_var("TEST_VS_HOST")
       raise e
@@ -104,9 +102,7 @@ test "CLI value overrides env — source is FromCli" {
   let p = parser("test", builder=fn(args) { args }).add_option(
     int_option("port", long="port", env="TEST_VS_PORT"),
   )
-  let result = try {
-    p.parse(["--port", "8080"])
-  } catch {
+  let result = p.parse(["--port", "8080"]) catch {
     e => {
       @sys.unset_env_var("TEST_VS_PORT")
       raise e
@@ -163,9 +159,7 @@ test "get_source returns FromConfig for config-sourced value" {
   let p = parser("test", builder=fn(args) { args })
     .add_option(str_option("host", long="host"))
     .with_config_file(config_file)
-  let result = try {
-    p.parse([])
-  } catch {
+  let result = p.parse([]) catch {
     e => {
       @fs.remove_file(config_file)
       raise e
