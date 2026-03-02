@@ -96,6 +96,17 @@ test "cli version appears in generated help" {
 }
 
 ///|
+test "handlerless leaf command raises handler error" {
+  let cli = create_cli("demo").add_command(command("deploy"))
+  let result = cli.run_for_test(["deploy"])
+  inspect(result.exit_code.code(), content="1")
+  match result.error {
+    Some(ParseError::HandlerError(_)) => inspect(true, content="true")
+    _ => inspect(false, content="true")
+  }
+}
+
+///|
 test "cli raises general error on handler failure" {
   let cli = create_cli("demo").add_command(
     command("deploy", handler=fn(_) raise { raise Failure::Failure("boom") }),

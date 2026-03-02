@@ -99,7 +99,7 @@ fn build_app() -> @margs.Cli {
     aliases=["i"],
   )
   let init_cmd = init_cmd.add_positional(
-    @margs.positional("name", help="Project name"),
+    @margs.positional("name", help="Project name", required=false),
   )
   let init_cmd = init_cmd.set_handler(handler=fn(args) {
     let v = verbose.require(args)
