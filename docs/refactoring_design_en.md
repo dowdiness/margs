@@ -634,7 +634,7 @@ Note: `host` and `port` have default values, so `require` will not actually fail
 
 #### Accessing ValueSource via TypedHandle
 
-Can be combined with the output of Improvement 1 for debug output.
+The example below combines `TypedHandle::source` with `ValueSource` (introduced in Improvement 1) to emit debug output based on where each value originated.
 
 ```moonbit
 let (cmd, port) = cmd.with("port", int_option(default=8080, env="MYAPP_PORT"))
@@ -741,7 +741,7 @@ moon run src/example -- serve --port 8080
 
 ## Implementation Order and Dependencies
 
-```
+```text
 Improvement 1: resolve_raw_value + ValueSource
   │
   │  ParsedArgs.values type changes
